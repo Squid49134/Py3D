@@ -9,16 +9,23 @@ from matplotlib.ticker import AutoMinorLocator
 
 # TODO:
 # interpolation
-# comments
 # c implementation
 # real space plotting?
 # multiline plots?
 
+#-----------------------------------------------------------------------------#
 
+# Master method, takes args, checks validity, chooses 2D or 3D
+# Provide either 4 or 6 args for 2D or 3D respectively
+# Bx, By, Bz must be 2D or 3D data arrays, Xinit, Yinit, Zinit must be numbers
 def TraceField(Bx, Xinit, By, Yinit, Bz = None, Zinit = None):
+    # Passes refers to rough number of passes of traced field line from one
+    # side of data to the other
     passes = 10
+    # ds is the differential step along the field line
     ds = .1
     
+    # checks if user would like to change default ds and passes
     while True:    
         Ans = raw_input('Keep default ds = .1 and passes = 10? Y or N: \n')
         if Ans == 'N' or Ans == 'n':
@@ -35,11 +42,14 @@ def TraceField(Bx, Xinit, By, Yinit, Bz = None, Zinit = None):
             print('invalid input try again \n')
             continue
         
+    # method call is invalid unless 4 or 6 arguments are provided
     if Bz != None and Zinit == None:
         print('invalid number of arguments, 2D requires 4, 3D requires 6')
         return 0
-        
+    
+    # 3D
     elif Bz != None and Zinit != None:
+        # checks validity of provided args
         try:
             assert(Bx.shape == By.shape == Bz.shape)
             assert(0 < Xinit < Bx.shape[0] - 1)
@@ -49,19 +59,26 @@ def TraceField(Bx, Xinit, By, Yinit, Bz = None, Zinit = None):
             print('invalid arguments, order is TraceField(Bx, X, By, Y, Bz, Z)')
             print('B components must be equal sized arrays, X, Y, Z must be numbers')
             return 0
+        
+        # calculates max number of differential steps along line
         if Bx.shape[0] >= Bx.shape[1] and Bx.shape[0] >= Bx.shape[2]:
             Steps = passes * (Bx.shape[0] / ds)
         elif Bx.shape[1] >= Bx.shape[0] and Bx.shape[1] >= Bx.shape[2]:
             Steps = passes * (Bx.shape[1] / ds)
         else:
             Steps = passes * (Bx.shape[2] / ds)
-    
+        
+        # sizes of data files are imoprtant to boundary conditions in 
+        # the tracing routines
         Xsize = Bx.shape[0]
         Ysize = Bx.shape[1]
         Zsize = Bx.shape[2]
             
+        # the 3D trace call
         FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps)
         
+        # checks if user would like to trace a different point with differnt
+        # X, Y, Z starting position
         while True:    
             cont = raw_input('Trace another point? Y or N \n')
             if cont == 'Y' or cont == 'y':
@@ -82,7 +99,8 @@ def TraceField(Bx, Xinit, By, Yinit, Bz = None, Zinit = None):
             else:
                 print('invalid input try again \n')
                 continue
-            
+    
+    # 2D
     else:
         try:
             assert(Bx.shape == By.shape)
@@ -123,12 +141,20 @@ def TraceField(Bx, Xinit, By, Yinit, Bz = None, Zinit = None):
                 print('invalid input try again \n')
                 continue
 
+#-----------------------------------------------------------------------------#
+# CORE METHODS
+
+# Core 2D tracing method (RK4)
+# can be called independently, but size of data arrays must be specified
+# cannot function without CalcSlopes2 method
 def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
     
     print('tracing...')
 
-    steps = int(steps)    
+    # for loop must take int
+    steps = int(steps)
     
+    # RK4 variables
     K1x = 0
     K2x = 0
     K3x = 0
@@ -154,8 +180,8 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
         if (100*float(step)/float(steps))%10 == 0:
             print(str(100*float(step)/float(steps)) + '%')        
         
-        # checking if X or Y has moved outside range (-.5 to 8191.5) and if so
-        # switches to other side of data grid
+        # for periodic boundaries checking if X, or Y has moved outside 
+        # range (-.5 to size-.5) and if so switches to other side of data grid
         if X < -.5:
             X = X + SizeX
         if Y < -.5:
@@ -164,10 +190,6 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
             X = X - SizeX
         if Y > (SizeY - .5):
             Y = Y - SizeY
-        
-        # just a status update, sometimes it takes a long time
-        #if (step % 1000000) == 0 and step != 0:
-        #    print("Step = ",step)
         
         # adding points (X,Y) to field line
         Line_X[step] = X
@@ -182,6 +204,7 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
             Line_Y = Line_Y[:step + 1]
             break
         
+        # RK4
         Slopes = CalcSlopes2(X, Y, Bx, By, SizeX, SizeY)
         SlopeX = Slopes[0]
         SlopeY = Slopes[1]
@@ -214,13 +237,16 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
         X = X + (dx/6)*(K1x + 2*K2x + 2*K3x + K4x)
         Y = Y + (dx/6)*(K1y + 2*K2y + 2*K3y + K4y)
     
+    # the figure
     fig1 = plt.figure(1)
     fig1.set_size_inches(10,10, forward = True)
     ax = fig1.add_subplot(111)
     ax.set_ylim([0, SizeY-1])
     ax.set_xlim([0, SizeX-1])
     
+    # plotting
     while True:
+        # checks if user would liek to plot line over a colormesh of |B|
         Ans = raw_input('Plot line over colormesh of |B|? Y or N: \n')
         if Ans == 'Y' or Ans == 'y':
             print('\n' + 'Calculating |B|...')
@@ -237,6 +263,7 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
             ax.set_title('$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
             plt.show()
             break
+        # or just the line
         elif Ans == 'N' or Ans == 'n':
             print('\n' + 'plotting...')
             ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .1, color='black') 
@@ -247,16 +274,23 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
             print('invalid input try again \n')
             continue
 
+
+# Core 3D tracing method (RK4)
+# can be called independently, but size of data arrays must be specified
+# cannot function without CalcSlopes3 method
 def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, steps = 100000):
     
     print('tracing...')
 
+    # initial starting points for field line
     X = Xinit
     Y = Yinit
     Z = Zinit
     
+    # for loop must take int
     steps = int(steps)
     
+    # RK4 variables
     K1x = 0
     K2x = 0
     K3x = 0
@@ -280,8 +314,8 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
     # loop to step forward line from initial point
     for step in range(0,steps):
         
-        # checking if X, Y, or Z has moved outside range (-.5 to size-.5) and if so
-        # switches to other side of data grid
+        # for periodic boundaries checking if X, Y, or Z has moved outside 
+        # range (-.5 to size-.5) and if so switches to other side of data grid
         if X < -.5:
             X = X + SizeX
         if Y < -.5:
@@ -299,12 +333,12 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
         if (100*float(step)/float(steps))%10 == 0:
             print(str(100*float(step)/float(steps)) + '%')
         
-        # adding points (X,Y) to field line divided by 20 for real space
+        # adding points (X,Y) to field line
         Line_X[step] = X
         Line_Y[step] = Y
         Line_Z[step] = Z
             
-        # finding next point on Line
+        # RK4, slightly different implementation from 2D for speed
         Slopes = CalcSlopes3(X, Y, Z, Bx, By, Bz, SizeX, SizeY, SizeZ)
         K1x = Slopes[0]
         K1y = Slopes[1]
@@ -377,6 +411,7 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
     
     fig1.tight_layout()
 
+    # checks if user would like to generate pucnture plots wiht this trace
     while True:
         Punct = raw_input('Generate puncture plots? Y or N \n')
         if Punct == 'Y' or Punct == 'y':
@@ -392,10 +427,17 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
 
     plt.show()
 
+#-----------------------------------------------------------------------------#
+# HELPER METHODS
+
+# 2D slope calculator for RK4 procedure
 def CalcSlopes2(x, y, Bx, By, SizeX, SizeY):
-    # distance between field line point (X,Y) and lower left data grid 
-    #point (i,j), such that Wx = X - i, Wy = Y - j
+    # first finds closest LOWER LEFT data grid point (i,j) to field line 
+    # point (x,y) and distance between them such that Wx = x - i, 
+    # Wy = y - j for interpolation of field between grid points
+    # different implementation in 3D for speed
     if x < 0 and y < 0:
+        # if x or y is below 0, modulus wont work properly
         i = -1
         Wx = 1 + x
         j = -1
@@ -411,10 +453,9 @@ def CalcSlopes2(x, y, Bx, By, SizeX, SizeY):
         Wx = x % 1
         i = int(x - Wx)
     else:
+        # if both x and y are greater than 0, modulus is used to find point (i,j)
         Wx = x % 1
         Wy = y % 1
-        # corresponding closest lower left data grid point (i,j) to field line
-        # point (X,Y)
         i = int(x - Wx)
         j = int(y - Wy)
     # other three nearest neighbors identified with i+1 and j+1
@@ -426,6 +467,7 @@ def CalcSlopes2(x, y, Bx, By, SizeX, SizeY):
     if i < 0:
         i = (SizeX - 1)
         i1 = 0
+    # this check should be unnecessary, deleted in 3D version
     if i > (SizeX - 1):
         i = 0
         i1 = 1
@@ -433,6 +475,7 @@ def CalcSlopes2(x, y, Bx, By, SizeX, SizeY):
     if j < 0:
         j = (SizeY - 1)
         j1 = 0
+    # this check should be unnecessary, deleted in 3D version
     if j > (SizeY - 1):
         j = 0
         j1 = 1
@@ -442,7 +485,6 @@ def CalcSlopes2(x, y, Bx, By, SizeX, SizeY):
     if j == (SizeY - 1):
         j1 = 0
     
-    #if (i != iStore or j != jStore):
     # identifying Bx, By at closest 4 data grid points
     Bx_ij = Bx[i,j]
     Bx_i1j = Bx[i1,j]
@@ -453,30 +495,27 @@ def CalcSlopes2(x, y, Bx, By, SizeX, SizeY):
     By_i1j = By[i1,j]
     By_ij1 = By[i,j1]
     By_i1j1 = By[i1,j1]
-            
-            # stores coordinates of lower left neighbor to test if neighbors
-            # have changed between steps so they don't need to be recalculated
-            # saves considerable run time
-            #iStore = i
-            #jStore = j
     
-    # finding average Bx, By and Bm from 4 nearest neighboring data points
-    # (i,j), (i+1,j), (i,j+1) and (i+1,j+1) at field line point (X,Y)
+    # finding average Bx, By and Bm at field line point (x,y) from 4 nearest 
+    # neighboring data points, (i,j), (i+1,j), (i,j+1) and (i+1,j+1)
     B_Wx = (1-Wx)*(1-Wy)*Bx_ij + (1-Wx)*Wy*Bx_ij1 + Wx*(1-Wy)*Bx_i1j + Wx*Wy*Bx_i1j1
     B_Wy = (1-Wx)*(1-Wy)*By_ij + (1-Wx)*Wy*By_ij1 + Wx*(1-Wy)*By_i1j + Wx*Wy*By_i1j1
     B_Wm = np.sqrt(B_Wx**2 + B_Wy**2)
     
+    # returns slopes of field and magnitude at point (x, y)
     return B_Wx/B_Wm, B_Wy/B_Wm
 
+
+# 3D slope calculator for RK4 procedure
 def CalcSlopes3(x, y, z, Bx, By, Bz, SizeX, SizeY, SizeZ):
-# distance between field line point (x,y,z) and lower left data grid 
-    #point (i,j,k), such that Wx = x - i, Wy = y - j, Wz = z - k
+    # first finds closest LOWER LEFT data grid point (i,j,k) to field line 
+    # point (x,y,z) and distance between them such that Wx = x - i, Wy = y - j, 
+    # Wz = z - k for interpolation of field between grid points
     if x > 0 and y > 0 and z > 0:
+        # if both x, y and z are greater than 0, modulus is used to find point (i,j,k)
         Wx = x % 1
         Wy = y % 1
         Wz = z % 1
-        # corresponding closest lower left data grid point (i,j,k) to field line
-        # point (x,y,z)
         i = int(x)
         j = int(y)
         k = int(z)
@@ -568,6 +607,7 @@ def CalcSlopes3(x, y, z, Bx, By, Bz, SizeX, SizeY, SizeZ):
         if i == (SizeX - 1):
             i1 = 0
     else:
+        # if x, y or z is below 0, modulus wont work properly
         i = (SizeX - 1)
         Wx = 1 + x
         j = (SizeY - 1)
@@ -578,7 +618,7 @@ def CalcSlopes3(x, y, z, Bx, By, Bz, SizeX, SizeY, SizeZ):
         j1 = 0
         k1 = 0
         
-        # identifying Bx, By and Bz at closest 4 data grid points
+    # identifying Bx, By and Bz at closest 4 data grid points
     Bx_ijk = Bx[i,j,k]
     Bx_i1jk = Bx[i1,j,k]
     Bx_ij1k = Bx[i,j1,k]
@@ -606,20 +646,23 @@ def CalcSlopes3(x, y, z, Bx, By, Bz, SizeX, SizeY, SizeZ):
     Bz_ij1k1 = Bz[i,j1,k1]
     Bz_i1j1k1 = Bz[i1,j1,k1]
 
-    # finding average Bx, By, Bz and Bm from 4 nearest neighboring data 
-    # points (i,j,k), (i+1,j,k), (i,j+1,k), (i+1,j+1,k), (i,j,k+1), 
+    # finding average Bx, By, Bz and Bm at field line point (x,y,z) from 8 nearest 
+    # neighboring data points (i,j,k), (i+1,j,k), (i,j+1,k), (i+1,j+1,k), (i,j,k+1), 
     # (i+1,j,k+1), (i,j+1,k+1) and (i+1,j+1,k+1) at field line point (x,y,z)
     B_Wx = (1-Wx)*(1-Wy)*(1-Wz)*Bx_ijk + (1-Wx)*Wy*(1-Wz)*Bx_ij1k + Wx*(1-Wy)*(1-Wz)*Bx_i1jk + Wx*Wy*(1-Wz)*Bx_i1j1k + (1-Wx)*(1-Wy)*Wz*Bx_ijk1 + (1-Wx)*Wy*Wz*Bx_ij1k1 + Wx*(1-Wy)*Wz*Bx_i1jk1 + Wx*Wy*Wz*Bx_i1j1k1
     B_Wy = (1-Wx)*(1-Wy)*(1-Wz)*By_ijk + (1-Wx)*Wy*(1-Wz)*By_ij1k + Wx*(1-Wy)*(1-Wz)*By_i1jk + Wx*Wy*(1-Wz)*By_i1j1k + (1-Wx)*(1-Wy)*Wz*By_ijk1 + (1-Wx)*Wy*Wz*By_ij1k1 + Wx*(1-Wy)*Wz*By_i1jk1 + Wx*Wy*Wz*By_i1j1k1
     B_Wz = (1-Wx)*(1-Wy)*(1-Wz)*Bz_ijk + (1-Wx)*Wy*(1-Wz)*Bz_ij1k + Wx*(1-Wy)*(1-Wz)*Bz_i1jk + Wx*Wy*(1-Wz)*Bz_i1j1k + (1-Wx)*(1-Wy)*Wz*Bz_ijk1 + (1-Wx)*Wy*Wz*Bz_ij1k1 + Wx*(1-Wy)*Wz*Bz_i1jk1 + Wx*Wy*Wz*Bz_i1j1k1
     B_Wm = np.sqrt(B_Wx**2 + B_Wy**2 + B_Wz**2)
     
+    # returns slopes of field and magnitude at point (x, y, z)
     return B_Wx/B_Wm, B_Wy/B_Wm, B_Wz/B_Wm
 
-def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY, SizeZ, Steps, dx):
-    
-    print('WARNING, COLORMAPS MAY NEED ADJUSTING')
 
+# 3D puncture plot generator cannot be called independently
+def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY, SizeZ, Steps, dx):
+    # takes pre traced line in form of LineX, LineY, LineZ arrays
+    
+    # first must calculate |B| for colormeshs
     print('\n' + 'Calculating |B|...')
     print('Squaring...')    
     Bx2 = Bx**2
@@ -630,12 +673,20 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     print('Taking square root...')    
     Bm = np.sqrt(Btot)
     
+    # max and min values used to set colormap for colormeshs
+    MAX = np.amax(Bm)
+    MIN = np.amin(Bm)    
+    
     print('puncturing...')
+    
+    # arrays to hold X and Y coordinates of Z plane punctures
     Xz = []
     Yz = []
     
+    # checking for Z plane punctures at Z = Zinit
     Steps = int(Steps)
     for i in range(0,Steps):
+        # just a status update
         if (100*float(i)/float(3*Steps))%10 == 0:
             print(str(100*float(i)/float(3*Steps)) + '%')
         if (Zinit - (dx/2)) < LineZ[i] < (Zinit + (dx/2)):
@@ -645,6 +696,7 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     Xz = np.array(Xz)
     Yz = np.array(Yz)
     
+    # and the Y plane
     Xy = []
     Zy = []
     
@@ -658,6 +710,7 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     Xy = np.array(Xy)
     Zy = np.array(Zy)
     
+    # and the X plane
     Zx = []
     Yx = []
     
@@ -671,6 +724,7 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     Zx = np.array(Zx)
     Yx = np.array(Yx)
     
+    # the figure
     fig2 = plt.figure(2)
     fig2.set_size_inches(6, 12, forward = True)
     fig2.suptitle('$Puncture$' + ' ' + '$Plots$' + ' ' + '$of$' + ' ' + '$\mid B\mid$', fontsize=20)
@@ -678,7 +732,9 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     fig2.subplots_adjust(top = .9)
     
     ax1 = fig2.add_subplot(311)
-    ax1.pcolormesh(Bm[:,:,Zinit].T, vmin=1, vmax=2, cmap=plt.cm.bwr)
+    # colormesh behind punctures
+    ax1.pcolormesh(Bm[:,:,Zinit].T, vmin=MIN, vmax=MAX, cmap=plt.cm.bwr)
+    # the actual punctures
     ax1.scatter(Xz, Yz, c = 'b', s = 3)
     ax1.xaxis.set_minor_locator(AutoMinorLocator(4))
     ax1.yaxis.set_minor_locator(AutoMinorLocator(4))
@@ -690,7 +746,7 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     ax1.set_xlim([0,SizeX-1])
     
     ax2 = fig2.add_subplot(312)
-    ax2.pcolormesh(Bm[:,Yinit,:].T, vmin=1, vmax=2, cmap=plt.cm.bwr)
+    ax2.pcolormesh(Bm[:,Yinit,:].T, vmin=MIN, vmax=MAX, cmap=plt.cm.bwr)
     ax2.scatter(Xy, Zy, c = 'b', s = 3)
     ax2.xaxis.set_minor_locator(AutoMinorLocator(4))
     ax2.yaxis.set_minor_locator(AutoMinorLocator(4))
@@ -702,7 +758,7 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     ax2.set_xlim([0,SizeX-1])
     
     ax3 = fig2.add_subplot(313)
-    ax3.pcolormesh(Bm[Xinit,:,:].T, vmin=1, vmax=2, cmap=plt.cm.bwr)
+    ax3.pcolormesh(Bm[Xinit,:,:].T, vmin=MIN, vmax=MAX, cmap=plt.cm.bwr)
     ax3.scatter(Yx, Zx, c = 'b', s = 3)
     ax3.xaxis.set_minor_locator(AutoMinorLocator(4))
     ax3.yaxis.set_minor_locator(AutoMinorLocator(4))
