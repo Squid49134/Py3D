@@ -4,118 +4,124 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from types import StringType
 from Py3D.sub import load_movie
 from matplotlib.ticker import AutoMinorLocator
 
+# TODO:
+# interpolation
+# comments
+# c implementation
+# real space plotting?
+# multiline plots?
 
 
-
-def TraceField(Xinit = None, Yinit = None, Zinit = None, Bx = None, By = None, Bz = None, ds = .1, passes = 10):
-    if Xinit == None:
-        while True:        
-            try:
-                Xinit = abs(int(raw_input('\n Enter X value of starting position: \n')))
-                break
-            except:
-                print('invalid input try again \n')
-                continue
-    if Yinit == None:
-        while True:        
-            try:
-                Yinit = abs(int(raw_input('Enter Y value of starting position: \n')))
-                break
-            except:
-                print('invalid input try again \n')
-                continue
-    if Zinit == None:
-        while True:        
-            try:
-                Zinit = abs(int(raw_input('Enter Z starting position or enter 0 for 2D: \n')))
-                break
-            except:
-                print('invalid input try again \n')
-                continue
-    if Bx == None or By == None or Bz == None:
-        while True:
-            Mov = raw_input('\n Is data in Movie file? Y or N: \n')
-            if Mov == 'Y' or Mov == 'y':
-                d = load_movie()
-                Bx = d['by']
-                By = d['bx']
-                break            
-            elif Mov == 'N' or Mov == 'n':
+def TraceField(Bx, Xinit, By, Yinit, Bz = None, Zinit = None):
+    passes = 10
+    ds = .1
+    
+    while True:    
+        Ans = raw_input('Keep default ds = .1 and passes = 10? Y or N: \n')
+        if Ans == 'N' or Ans == 'n':
                 while True:        
-                    PathX = raw_input('\n Specify file path for X component field data: \n' )
                     try:
-                        print('loading...')
-                        Bx = np.load(PathX)
-                        break
+                        ds = abs(int(raw_input('set ds =  ')))
+                        passes = abs(int(raw_input('# of passes =  ')))
                     except:
-                        print('no file found try again \n')
+                        print('invalid input try again \n')
                         continue
-                while True:    
-                    PathY = raw_input('Specify file path for Y component field data: \n' )
-                    try:
-                        print('loading...')
-                        By = np.load(PathY)
-                        break
-                    except:
-                        print('no file found try again \n')
-                        continue
-                while True:   
-                    PathZ = raw_input('Specify file path for Z component or enter None for 2D: \n' )
-                    try:
-                        if PathZ == 'None' or PathZ == 'NONE' or PathZ == 'none':
-                            break
-                        print('loading...\n')
-                        Bz = np.load(PathZ)
-                        break
-                    except:
-                        print('no file found try again \n')
-                        continue
-                break
-            else:
-                print('invalid input try again \n')
-                continue
-            
-    Dimension = 0
-    if len(Bx.shape) == 3:
-        Dimension = 3
+        elif Ans == 'Y' or Ans == 'y':
+            break
+        else:
+            print('invalid input try again \n')
+            continue
+        
+    if Bz != None and Zinit == None:
+        print('invalid number of arguments, 2D requires 4, 3D requires 6')
+        return 0
+        
+    elif Bz != None and Zinit != None:
+        try:
+            assert(Bx.shape == By.shape == Bz.shape)
+            assert(0 < Xinit < Bx.shape[0] - 1)
+            assert(0 < Yinit < Bx.shape[1] - 1)
+            assert(0 < Zinit < Bx.shape[2] - 1)
+        except:
+            print('invalid arguments, order is TraceField(Bx, X, By, Y, Bz, Z)')
+            print('B components must be equal sized arrays, X, Y, Z must be numbers')
+            return 0
         if Bx.shape[0] >= Bx.shape[1] and Bx.shape[0] >= Bx.shape[2]:
             Steps = passes * (Bx.shape[0] / ds)
         elif Bx.shape[1] >= Bx.shape[0] and Bx.shape[1] >= Bx.shape[2]:
             Steps = passes * (Bx.shape[1] / ds)
         else:
             Steps = passes * (Bx.shape[2] / ds)
-    elif len(Bx.shape) == 2:
-        Dimension = 2
+    
+        Xsize = Bx.shape[0]
+        Ysize = Bx.shape[1]
+        Zsize = Bx.shape[2]
+            
+        FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps)
+        
+        while True:    
+            cont = raw_input('Trace another point? Y or N \n')
+            if cont == 'Y' or cont == 'y':
+                while True:        
+                    try:
+                        Xinit = abs(int(raw_input('\n' + 'Enter X value of starting position: \n')))
+                        Yinit = abs(int(raw_input('Enter Y value of starting position: \n')))
+                        Zinit = abs(int(raw_input('Enter Z value of starting position: \n')))                        
+                        break
+                    except:
+                        print('invalid input try again \n')
+                        continue
+                TraceField(Bx, Xinit, By, Yinit, Bz, Zinit)
+                break
+            elif cont == 'N' or cont == 'n':
+                print('finished')
+                break
+            else:
+                print('invalid input try again \n')
+                continue
+            
+    else:
+        try:
+            assert(Bx.shape == By.shape)
+            assert(0 < Xinit < Bx.shape[0] - 1)
+            assert(0 < Yinit < Bx.shape[1] - 1)
+        except:
+            print('invalid arguments, order is TraceField(Bx, X, By, Y)')
+            print('B components must be equal sized arrays, X, Y must be numbers')
+            
+            return 0
         if Bx.shape[0] >= Bx.shape[1]:
             Steps = passes * (Bx.shape[0] / ds)
         else:
             Steps = passes * (Bx.shape[1] / ds)
-            
-    if Dimension == 3:
+        
         Xsize = Bx.shape[0]
         Ysize = Bx.shape[1]
-        Zsize = Bx.shape[2]
-        while True:
-            FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps)
+    
+        FieldLine2D(Xinit, Yinit, Bx, By, Xsize, Ysize, ds, Steps)
+    
+        while True:    
             cont = raw_input('Trace another point? Y or N \n')
             if cont == 'Y' or cont == 'y':
-                continue            
+                while True:        
+                    try:
+                        Xinit = abs(int(raw_input('\n' + 'Enter X value of starting position: \n')))
+                        Yinit = abs(int(raw_input('Enter Y value of starting position: \n')))                        
+                        break
+                    except:
+                        print('invalid input try again \n')
+                        continue
+                TraceField(Bx, Xinit, By, Yinit)
+                break
             elif cont == 'N' or cont == 'n':
+                print('finished')
                 break
             else:
                 print('invalid input try again \n')
-    elif Dimension == 2:
-        Xsize = Bx.shape[0]
-        Ysize = Bx.shape[1]
-        FieldLine2D(Xinit, Yinit, Bx, By, Xsize, Ysize, ds, Steps)
-        #Generate Multiline plot?
-    else:
-        print('invalid data file, aborting...')
-
+                continue
 
 def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
     
@@ -214,12 +220,32 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
     ax.set_ylim([0, SizeY-1])
     ax.set_xlim([0, SizeX-1])
     
-    # Plotting single field line
-    # most troublesome line at 4596,4596, movie time 199
-    #print('plotting')
-    ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .1, color='black')
-    
-    plt.show()
+    while True:
+        Ans = raw_input('Plot line over colormesh of |B|? Y or N: \n')
+        if Ans == 'Y' or Ans == 'y':
+            print('\n' + 'Calculating |B|...')
+            print('Squaring...')    
+            Bx2 = Bx**2
+            By2 = By**2
+            print('Adding up...')    
+            Btot = Bx2 + By2
+            print('Taking square root...')    
+            Bm = np.sqrt(Btot)
+            print('\n' + 'plotting...')
+            ax.pcolormesh(Bm.T)            
+            ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .1, color='black')
+            ax.set_title('$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
+            plt.show()
+            break
+        elif Ans == 'N' or Ans == 'n':
+            print('\n' + 'plotting...')
+            ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .1, color='black') 
+            ax.set_title('$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
+            plt.show()
+            break
+        else:
+            print('invalid input try again \n')
+            continue
 
 def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, steps = 100000):
     
@@ -594,8 +620,15 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     
     print('WARNING, COLORMAPS MAY NEED ADJUSTING')
 
-    print('\n' + 'calculating |B|...')
-    Bm = np.sqrt(Bx**2 + By**2 + Bz**2)    
+    print('\n' + 'Calculating |B|...')
+    print('Squaring...')    
+    Bx2 = Bx**2
+    By2 = By**2
+    Bz2 = Bz**2
+    print('Adding up...')    
+    Btot = Bx2 + By2 + Bz2
+    print('Taking square root...')    
+    Bm = np.sqrt(Btot)
     
     print('puncturing...')
     Xz = []
@@ -681,6 +714,4 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     ax3.set_xlim([0,SizeY-1])
     
     plt.show()
-
-TraceField()
     
