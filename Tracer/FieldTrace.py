@@ -31,7 +31,7 @@ def TraceField(Xinit = None, Yinit = None, Zinit = None, Bx = None, By = None, B
     if Zinit == None:
         while True:        
             try:
-                Zinit = abs(int(raw_input('Enter Z value of starting position: \n')))
+                Zinit = abs(int(raw_input('Enter Z starting position or enter 0 for 2D: \n')))
                 break
             except:
                 print('invalid input try again \n')
@@ -41,9 +41,8 @@ def TraceField(Xinit = None, Yinit = None, Zinit = None, Bx = None, By = None, B
             Mov = raw_input('\n Is data in Movie file? Y or N: \n')
             if Mov == 'Y' or Mov == 'y':
                 d = load_movie()
-                Bx = d['bx']
-                By = d['by']
-                Bz = d['bz']
+                Bx = d['by']
+                By = d['bx']
                 break            
             elif Mov == 'N' or Mov == 'n':
                 while True:        
@@ -65,9 +64,11 @@ def TraceField(Xinit = None, Yinit = None, Zinit = None, Bx = None, By = None, B
                         print('no file found try again \n')
                         continue
                 while True:   
-                    PathZ = raw_input('Specify file path for Z component field data: \n' )
+                    PathZ = raw_input('Specify file path for Z component or enter None for 2D: \n' )
                     try:
-                        print('loading...')
+                        if PathZ == 'None' or PathZ == 'NONE' or PathZ == 'none':
+                            break
+                        print('loading...\n')
                         Bz = np.load(PathZ)
                         break
                     except:
@@ -117,9 +118,109 @@ def TraceField(Xinit = None, Yinit = None, Zinit = None, Bx = None, By = None, B
 
 
 def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
-
-    return 0
     
+    print('tracing...')
+
+    steps = int(steps)    
+    
+    K1x = 0
+    K2x = 0
+    K3x = 0
+    K4x = 0
+    
+    K1y = 0
+    K2y = 0
+    K3y = 0
+    K4y = 0
+    
+    # arrays to hold X and Y coordinates of field line points
+    Line_X = np.zeros(steps)
+    Line_Y = np.zeros(steps)
+    
+    # initial point for a field line
+    X = Xinit
+    Y = Yinit
+    
+    # loop to step forward line from initial point
+    for step in range(0,steps):
+        
+        # just a status update, sometimes it takes a long time
+        if (100*float(step)/float(steps))%10 == 0:
+            print(str(100*float(step)/float(steps)) + '%')        
+        
+        # checking if X or Y has moved outside range (-.5 to 8191.5) and if so
+        # switches to other side of data grid
+        if X < -.5:
+            X = X + SizeX
+        if Y < -.5:
+            Y = Y + SizeY
+        if X > (SizeX - .5):
+            X = X - SizeX
+        if Y > (SizeY - .5):
+            Y = Y - SizeY
+        
+        # just a status update, sometimes it takes a long time
+        #if (step % 1000000) == 0 and step != 0:
+        #    print("Step = ",step)
+        
+        # adding points (X,Y) to field line
+        Line_X[step] = X
+        Line_Y[step] = Y
+        
+        # breaks out of loop when X and Y are within dx of their values at 
+        # the second step (first step not chosen since it has higher error)
+        if step > 100 and abs(X - Line_X[2]) < dx and abs(Y - Line_Y[2]) < dx:
+            print('Line Completed')
+            # trimming the arrays to proper length after completion
+            Line_X = Line_X[:step + 1]
+            Line_Y = Line_Y[:step + 1]
+            break
+        
+        Slopes = CalcSlopes2(X, Y, Bx, By, SizeX, SizeY)
+        SlopeX = Slopes[0]
+        SlopeY = Slopes[1]
+        
+        K1x = SlopeX
+        K1y = SlopeY
+        
+        Slopes2 = CalcSlopes2(X + (dx/2)*SlopeX , Y + (dx/2)*SlopeY, Bx, By, SizeX, SizeY)
+        SlopeX2 = Slopes2[0]
+        SlopeY2 = Slopes2[1]
+        
+        K2x = SlopeX2
+        K2y = SlopeY2
+        
+        Slopes3 = CalcSlopes2(X + (dx/2)*SlopeX2 , Y + (dx/2)*SlopeY2, Bx, By, SizeX, SizeY)
+        SlopeX3 = Slopes3[0]
+        SlopeY3 = Slopes3[1]
+        
+        K3x = SlopeX3
+        K3y = SlopeY3
+        
+        Slopes4 = CalcSlopes2(X + dx*SlopeX3 , Y + dx*SlopeY3, Bx, By, SizeX, SizeY)
+        SlopeX4 = Slopes4[0]
+        SlopeY4 = Slopes4[1]
+        
+        K4x = SlopeX4
+        K4y = SlopeY4
+        
+        
+        X = X + (dx/6)*(K1x + 2*K2x + 2*K3x + K4x)
+        Y = Y + (dx/6)*(K1y + 2*K2y + 2*K3y + K4y)
+    
+    fig1 = plt.figure(1)
+    fig1.set_size_inches(10,10, forward = True)
+    ax = fig1.add_subplot(111)
+    ax.set_ylim([0, SizeY-1])
+    ax.set_xlim([0, SizeX-1])
+    
+    # Plotting single field line
+    # most troublesome line at 4596,4596, movie time 199
+    #print('plotting')
+    ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .1, color='black')
+    
+    plt.show()
+
 def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, steps = 100000):
     
     print('tracing...')
@@ -178,22 +279,22 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
         Line_Z[step] = Z
             
         # finding next point on Line
-        Slopes = CalcSlopes(X, Y, Z, Bx, By, Bz, SizeX, SizeY, SizeZ)
+        Slopes = CalcSlopes3(X, Y, Z, Bx, By, Bz, SizeX, SizeY, SizeZ)
         K1x = Slopes[0]
         K1y = Slopes[1]
         K1z = Slopes[2]
         
-        Slopes2 = CalcSlopes(X + (dx/2)*K1x , Y + (dx/2)*K1y, Z + (dx/2)*K1z, Bx, By, Bz, SizeX, SizeY, SizeZ)
+        Slopes2 = CalcSlopes3(X + (dx/2)*K1x , Y + (dx/2)*K1y, Z + (dx/2)*K1z, Bx, By, Bz, SizeX, SizeY, SizeZ)
         K2x = Slopes2[0]
         K2y = Slopes2[1]
         K2z = Slopes2[2]
         
-        Slopes3 = CalcSlopes(X + (dx/2)*K2x , Y + (dx/2)*K2y, Z + (dx/2)*K2z, Bx, By, Bz, SizeX, SizeY, SizeZ)
+        Slopes3 = CalcSlopes3(X + (dx/2)*K2x , Y + (dx/2)*K2y, Z + (dx/2)*K2z, Bx, By, Bz, SizeX, SizeY, SizeZ)
         K3x = Slopes3[0]
         K3y = Slopes3[1]
         K3z = Slopes3[2]
         
-        Slopes4 = CalcSlopes(X + dx*K3x , Y + dx*K3y, Z + dx*K3z, Bx, By, Bz, SizeX, SizeY, SizeZ)
+        Slopes4 = CalcSlopes3(X + dx*K3x , Y + dx*K3y, Z + dx*K3z, Bx, By, Bz, SizeX, SizeY, SizeZ)
         K4x = Slopes4[0]
         K4y = Slopes4[1]
         K4z = Slopes4[2]
@@ -265,8 +366,83 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
 
     plt.show()
 
+def CalcSlopes2(x, y, Bx, By, SizeX, SizeY):
+    # distance between field line point (X,Y) and lower left data grid 
+    #point (i,j), such that Wx = X - i, Wy = Y - j
+    if x < 0 and y < 0:
+        i = -1
+        Wx = 1 + x
+        j = -1
+        Wy = 1 + y
+    elif x < 0:
+        i = -1
+        Wx = 1 + x
+        Wy = y % 1
+        j = int(y - Wy)
+    elif y < 0:
+        j = -1
+        Wy = 1 + y
+        Wx = x % 1
+        i = int(x - Wx)
+    else:
+        Wx = x % 1
+        Wy = y % 1
+        # corresponding closest lower left data grid point (i,j) to field line
+        # point (X,Y)
+        i = int(x - Wx)
+        j = int(y - Wy)
+    # other three nearest neighbors identified with i+1 and j+1
+    i1 = i + 1
+    j1 = j + 1
+    
+    # check i and j for edge conditions
+    #if (i != iStore or j != jStore):
+    if i < 0:
+        i = (SizeX - 1)
+        i1 = 0
+    if i > (SizeX - 1):
+        i = 0
+        i1 = 1
+        
+    if j < 0:
+        j = (SizeY - 1)
+        j1 = 0
+    if j > (SizeY - 1):
+        j = 0
+        j1 = 1
+        
+    if i == (SizeX - 1):
+        i1 = 0
+    if j == (SizeY - 1):
+        j1 = 0
+    
+    #if (i != iStore or j != jStore):
+    # identifying Bx, By at closest 4 data grid points
+    Bx_ij = Bx[i,j]
+    Bx_i1j = Bx[i1,j]
+    Bx_ij1 = Bx[i,j1]
+    Bx_i1j1 = Bx[i1,j1]
+    
+    By_ij = By[i,j]
+    By_i1j = By[i1,j]
+    By_ij1 = By[i,j1]
+    By_i1j1 = By[i1,j1]
+            
+            # stores coordinates of lower left neighbor to test if neighbors
+            # have changed between steps so they don't need to be recalculated
+            # saves considerable run time
+            #iStore = i
+            #jStore = j
+    
+    # finding average Bx, By and Bm from 4 nearest neighboring data points
+    # (i,j), (i+1,j), (i,j+1) and (i+1,j+1) at field line point (X,Y)
+    B_Wx = (1-Wx)*(1-Wy)*Bx_ij + (1-Wx)*Wy*Bx_ij1 + Wx*(1-Wy)*Bx_i1j + Wx*Wy*Bx_i1j1
+    B_Wy = (1-Wx)*(1-Wy)*By_ij + (1-Wx)*Wy*By_ij1 + Wx*(1-Wy)*By_i1j + Wx*Wy*By_i1j1
+    B_Wm = np.sqrt(B_Wx**2 + B_Wy**2)
+    
+    return B_Wx/B_Wm, B_Wy/B_Wm
 
-def CalcSlopes(x, y, z, Bx, By, Bz, SizeX, SizeY, SizeZ):
+def CalcSlopes3(x, y, z, Bx, By, Bz, SizeX, SizeY, SizeZ):
 # distance between field line point (x,y,z) and lower left data grid 
     #point (i,j,k), such that Wx = x - i, Wy = y - j, Wz = z - k
     if x > 0 and y > 0 and z > 0:
