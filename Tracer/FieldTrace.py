@@ -8,16 +8,20 @@ from Py3D.sub import load_movie
 from matplotlib.ticker import AutoMinorLocator
 
 # TODO:
-# interpolation
 # c implementation
 # real space plotting?
 # multiline plots?
 
 #-----------------------------------------------------------------------------#
 
-# Master method, takes args, checks validity, chooses 2D or 3D
-# Provide either 4 or 6 args for 2D or 3D respectively
-# Bx, By, Bz must be 2D or 3D data arrays, Xinit, Yinit, Zinit must be numbers
+# Master method, takes args, checks validity of args, chooses 2D or 3D
+# B must list of either two, 2 dimensional data arrays [Bx, By] or three
+# 3 dimensional data arrays [Bx, By, Bz].  Start must be list of either
+# [X, Y] starting location for 2D of [X, Y, Z] for 3D.  ds is the differential
+# step, passes is length of the trace, with one pass going from one side of
+# the data array to the other.  E can be a list of either two, 2 dimensional
+# or three, 3 dimensional data arrays to be interpolated along the path
+# of the trace
 def TraceField(B, Start, ds, passes = 10, E = None):
                
     try:
@@ -78,7 +82,7 @@ def TraceField(B, Start, ds, passes = 10, E = None):
             
         # the 3D trace call
         if E != None:
-            FieldLine3D(Start[0], Start[1], Start[2], B[0], B[1], B[2], Xsize, Ysize, Zsize, ds, Steps, E[0], E[1], E[2])
+            FieldLine3D(Start[0], Start[1], Start[2], B[0], B[1], B[2], Xsize, Ysize, Zsize, ds, Steps, E)
         else:
             FieldLine3D(Start[0], Start[1], Start[2], B[0], B[1], B[2], Xsize, Ysize, Zsize, ds, Steps)
         
@@ -151,7 +155,7 @@ def TraceField(B, Start, ds, passes = 10, E = None):
             
         # the 3D trace call
         if E != None:
-            FieldLine2D(Start[0], Start[1], B[0], B[1], Xsize, Ysize, ds, Steps, E[0], E[1])
+            FieldLine2D(Start[0], Start[1], B[0], B[1], Xsize, Ysize, ds, Steps, E)
         else:
             FieldLine2D(Start[0], Start[1], B[0], B[1], Xsize, Ysize, ds, Steps)
         
@@ -188,7 +192,7 @@ def TraceField(B, Start, ds, passes = 10, E = None):
 # cannot function without CalcSlopes2 method
 def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000, E = None):
     
-    print('tracing...')
+    print('\n' + 'tracing...')
 
     # for loop must take int
     steps = int(steps)
@@ -209,8 +213,8 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000, E =
     Line_Y = np.zeros(steps)
     
     # initial point for a field line
-    X = Xinit
-    Y = Yinit
+    X = float(Xinit)
+    Y = float(Yinit)
     
     # interpolation variable
     interp = 0
@@ -299,7 +303,7 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000, E =
     # plotting
     while True:
         # checks if user would liek to plot line over a colormesh of |B|
-        Ans = raw_input('Plot line over colormesh of |B|? Y or N: \n')
+        Ans = raw_input('\n' + 'Plot line over colormesh of |B|? Y or N: \n')
         if Ans == 'Y' or Ans == 'y':
             print('\n' + 'Calculating |B|...')
             print('Squaring...')    
@@ -315,7 +319,7 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000, E =
             ax.set_title('$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
             plt.show()
             if E != None:
-                print('Sum(E dot B) along line = ' + str(interp))
+                print('\n' + 'Sum(E dot B) along line = ' + str(interp) + '\n')
             break
         # or just the line
         elif Ans == 'N' or Ans == 'n':
@@ -324,7 +328,7 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000, E =
             ax.set_title('$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
             plt.show()
             if E != None:
-                print('Sum(E dot B) along line = ' + str(interp))
+                print('\n'+'Sum(E dot B) along line = ' + str(interp) + '\n')
             break
         else:
             print('invalid input try again \n')
@@ -336,12 +340,12 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000, E =
 # cannot function without CalcSlopes3 method
 def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, steps = 100000, E = None):
     
-    print('tracing...')
+    print('\n' + 'tracing...')
 
     # initial starting points for field line
-    X = Xinit
-    Y = Yinit
-    Z = Zinit
+    X = float(Xinit)
+    Y = float(Yinit)
+    Z = float(Zinit)
     
     # for loop must take int
     steps = int(steps)
@@ -452,9 +456,9 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
     # to match plots of J.transpose
     # this plot looks down X axis
     ax.view_init(elev = 0, azim = 0)
-    ax.set_xlim([SizeX-1,0])
-    ax.set_ylim([SizeY-1,0])
-    ax.set_zlim([SizeZ-1,0])
+    ax.set_xlim([0,SizeX-1])
+    ax.set_ylim([0,SizeY-1])
+    ax.set_zlim([0,SizeZ-1])
     
     ax2 = fig1.add_subplot(132, projection = '3d')
     ax2.set_title('$Projection$' + ' ' + '$down$' + ' ' + '$Y$' + ' ' + '$axis$', fontsize=20)
@@ -464,9 +468,9 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
     ax2.set_zlabel('Z')
     # looking down Y axis
     ax2.view_init(elev = 0, azim = 270)
-    ax2.set_xlim([SizeX-1,0])
-    ax2.set_ylim([SizeY-1,0])
-    ax2.set_zlim([SizeZ-1,0])
+    ax2.set_xlim([0,SizeX-1])
+    ax2.set_ylim([0,SizeY-1])
+    ax2.set_zlim([0,SizeZ-1])
     
     ax3 = fig1.add_subplot(133, projection = '3d')
     ax3.set_title('$Projection$' + ' ' + '$down$' + ' ' + '$Z$' + ' ' + '$axis$', fontsize=20)
@@ -476,15 +480,15 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
     ax3.set_zlabel('Z')
     # looking down Z axis
     ax3.view_init(elev = 90, azim = 270)
-    ax3.set_xlim([SizeX-1,0])
-    ax3.set_ylim([SizeY-1,0])
-    ax3.set_zlim([SizeZ-1,0])
+    ax3.set_xlim([0,SizeX-1])
+    ax3.set_ylim([0,SizeY-1])
+    ax3.set_zlim([0,SizeZ-1])
     
     fig1.tight_layout()
 
     # checks if user would like to generate pucnture plots wiht this trace
     while True:
-        Punct = raw_input('Generate puncture plots? Y or N \n')
+        Punct = raw_input('\n' + 'Generate puncture plots? Y or N \n')
         if Punct == 'Y' or Punct == 'y':
             Puncture(Xinit, Yinit, Zinit, Line_X, Line_Y, Line_Z, Bx, By, Bz, SizeX, SizeY, SizeZ, steps, dx)   
             break
@@ -494,11 +498,11 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
         else:
             print('invalid input try again \n')
             
-    print('plotting...')
+    print('\n' + 'plotting...')
 
     plt.show()
     if E != None:
-        print('Sum(E dot B) along line = ' + str(interp))
+        print('\n' + 'Sum(E dot B) along line = ' + str(interp) + '\n')
 
 #-----------------------------------------------------------------------------#
 # HELPER METHODS
@@ -750,7 +754,7 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     MAX = np.amax(Bm)
     MIN = np.amin(Bm)    
     
-    print('puncturing...')
+    print('\n' + 'puncturing...')
     
     # arrays to hold X and Y coordinates of Z plane punctures
     Xz = []
@@ -847,19 +851,39 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
 
 #-----------------------------------------------------------------------------#
 # TEST
+#print('')
+#print("TEST 1")
+#print('')
+#print('')
+#
+#Bx =  np.load('/scratch-fast/asym030/bx.npy')
+#By =  np.load('/scratch-fast/asym030/by.npy')
+#Bz =  np.load('/scratch-fast/asym030/bz.npy')
+#print('loaded')
+#Mag = [Bx, By, Bz]
+#S = [500, 500, 500]
+#TraceField(Mag, S, .1, Mag)
+#
+#print('')
+#print('-----------------------------------------------')
+#print("TEST 2")
+#print('')
+#print('')
+#
+#d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
+#Bx = d['by']
+#By = d['bx']
+#print('loaded')
+#Mag = [Bx, By]
+#S = [2000, 2000]
+#TraceField(Mag, S, .1, Mag)
 
+#-----------------------------------------------------------------------------#
+print('loading')
 Bx =  np.load('/scratch-fast/asym030/bx.npy')
 By =  np.load('/scratch-fast/asym030/by.npy')
 Bz =  np.load('/scratch-fast/asym030/bz.npy')
 print('loaded')
 Mag = [Bx, By, Bz]
-S = [500, 500, 500]
-TraceField(Mag, S, .01)
-# 
-d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
-Bx = d['by']
-By = d['bx']
-print('loaded')
-Mag = [Bx, By]
-S = [2000, 2000]
-TraceField(Mag, S, .01)
+S = [1200, 240, 500]
+TraceField(Mag, S, .1, 2)
