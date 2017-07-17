@@ -18,64 +18,69 @@ from matplotlib.ticker import AutoMinorLocator
 # Master method, takes args, checks validity, chooses 2D or 3D
 # Provide either 4 or 6 args for 2D or 3D respectively
 # Bx, By, Bz must be 2D or 3D data arrays, Xinit, Yinit, Zinit must be numbers
-def TraceField(Bx, Xinit, By, Yinit, Bz = None, Zinit = None):
-    # Passes refers to rough number of passes of traced field line from one
-    # side of data to the other
-    passes = 10
-    # ds is the differential step along the field line
-    ds = .1
-    
-    # checks if user would like to change default ds and passes
-    while True:    
-        Ans = raw_input('Keep default ds = .1 and passes = 10? Y or N: \n')
-        if Ans == 'N' or Ans == 'n':
-                while True:        
-                    try:
-                        ds = abs(int(raw_input('set ds =  ')))
-                        passes = abs(int(raw_input('# of passes =  ')))
-                    except:
-                        print('invalid input try again \n')
-                        continue
-        elif Ans == 'Y' or Ans == 'y':
-            break
+def TraceField(B, Start, ds, passes = 10, E = None):
+               
+    try:
+        if (len(B) == 2 or len(B) == 3):
+            0
         else:
-            print('invalid input try again \n')
-            continue
-        
-    # method call is invalid unless 4 or 6 arguments are provided
-    if Bz != None and Zinit == None:
-        print('invalid number of arguments, 2D requires 4, 3D requires 6')
+            print('invalid B')
+            return 0
+    except:
+        print('invalid B')
         return 0
-    
+        
     # 3D
-    elif Bz != None and Zinit != None:
+    if len(B) == 3:
         # checks validity of provided args
         try:
-            assert(Bx.shape == By.shape == Bz.shape)
-            assert(0 < Xinit < Bx.shape[0] - 1)
-            assert(0 < Yinit < Bx.shape[1] - 1)
-            assert(0 < Zinit < Bx.shape[2] - 1)
+            assert(B[0].shape == B[1].shape == B[2].shape)
+            assert(0 < Start[0] < B[0].shape[0] - 1)
+            assert(0 < Start[1] < B[0].shape[1] - 1)
+            assert(0 < Start[2] < B[0].shape[2] - 1)
         except:
-            print('invalid arguments, order is TraceField(Bx, X, By, Y, Bz, Z)')
-            print('B components must be equal sized arrays, X, Y, Z must be numbers')
+            print('invalid arguments, B components must be equal sized arrays,')
+            print('X, Y, Z must be within the size of B arrays')
             return 0
         
+        if passes != 10:
+            if E == None:
+                try:
+                    passes = int(passes)
+                except:
+                    E = passes
+                    passes = 10
+            else:
+                try:
+                    assert(E.shape == B.shape)
+                    assert(E[0].shape == E[1].shape == E[2].shape)
+                    assert(E[0].shape[0] == B[0].shape[0])
+                    assert(E[0].shape[1] == B[0].shape[1])
+                    assert(E[0].shape[2] == B[0].shape[2])
+                except:
+                    print('invalid arguments, E must be same size as B')
+                    return 0
+                    
+        
         # calculates max number of differential steps along line
-        if Bx.shape[0] >= Bx.shape[1] and Bx.shape[0] >= Bx.shape[2]:
-            Steps = passes * (Bx.shape[0] / ds)
-        elif Bx.shape[1] >= Bx.shape[0] and Bx.shape[1] >= Bx.shape[2]:
-            Steps = passes * (Bx.shape[1] / ds)
+        if B[0].shape[0] >= B[0].shape[1] and B[0].shape[0] >= B[0].shape[2]:
+            Steps = passes * (B[0].shape[0] / ds)
+        elif B[0].shape[1] >= B[0].shape[0] and B[0].shape[1] >= B[0].shape[2]:
+            Steps = passes * (B[0].shape[1] / ds)
         else:
-            Steps = passes * (Bx.shape[2] / ds)
+            Steps = passes * (B[0].shape[2] / ds)
         
         # sizes of data files are imoprtant to boundary conditions in 
         # the tracing routines
-        Xsize = Bx.shape[0]
-        Ysize = Bx.shape[1]
-        Zsize = Bx.shape[2]
+        Xsize = B[0].shape[0]
+        Ysize = B[0].shape[1]
+        Zsize = B[0].shape[2]
             
         # the 3D trace call
-        FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps)
+        if E != None:
+            FieldLine3D(Start[0], Start[1], Start[2], B[0], B[1], B[2], Xsize, Ysize, Zsize, ds, Steps, E[0], E[1], E[2])
+        else:
+            FieldLine3D(Start[0], Start[1], Start[2], B[0], B[1], B[2], Xsize, Ysize, Zsize, ds, Steps)
         
         # checks if user would like to trace a different point with differnt
         # X, Y, Z starting position
@@ -84,14 +89,17 @@ def TraceField(Bx, Xinit, By, Yinit, Bz = None, Zinit = None):
             if cont == 'Y' or cont == 'y':
                 while True:        
                     try:
-                        Xinit = abs(int(raw_input('\n' + 'Enter X value of starting position: \n')))
-                        Yinit = abs(int(raw_input('Enter Y value of starting position: \n')))
-                        Zinit = abs(int(raw_input('Enter Z value of starting position: \n')))                        
+                        Start[0] = abs(float(raw_input('\n' + 'Enter X value of starting position: \n')))
+                        Start[1] = abs(float(raw_input('Enter Y value of starting position: \n')))
+                        Start[2] = abs(float(raw_input('Enter Z value of starting position: \n')))
+                        ds =  abs(float(raw_input('Enter ds value: \n')))
+                        passes = abs(float(raw_input('Enter number of passes: \n')))
                         break
                     except:
                         print('invalid input try again \n')
                         continue
-                TraceField(Bx, Xinit, By, Yinit, Bz, Zinit)
+                plt.close()
+                TraceField(B, Start, ds, passes, E)
                 break
             elif cont == 'N' or cont == 'n':
                 print('finished')
@@ -102,37 +110,68 @@ def TraceField(Bx, Xinit, By, Yinit, Bz = None, Zinit = None):
     
     # 2D
     else:
+        # checks validity of provided args
         try:
-            assert(Bx.shape == By.shape)
-            assert(0 < Xinit < Bx.shape[0] - 1)
-            assert(0 < Yinit < Bx.shape[1] - 1)
+            assert(B[0].shape == B[1].shape)
+            assert(0 < Start[0] < B[0].shape[0] - 1)
+            assert(0 < Start[1] < B[0].shape[1] - 1)
         except:
-            print('invalid arguments, order is TraceField(Bx, X, By, Y)')
-            print('B components must be equal sized arrays, X, Y must be numbers')
-            
+            print('invalid arguments, B components must be equal sized arrays,')
+            print('X, Y must be within the size of B arrays')
             return 0
-        if Bx.shape[0] >= Bx.shape[1]:
-            Steps = passes * (Bx.shape[0] / ds)
-        else:
-            Steps = passes * (Bx.shape[1] / ds)
         
-        Xsize = Bx.shape[0]
-        Ysize = Bx.shape[1]
-    
-        FieldLine2D(Xinit, Yinit, Bx, By, Xsize, Ysize, ds, Steps)
-    
+        if passes != 10:
+            if E == None:
+                try:
+                    passes = int(passes)
+                except:
+                    E = passes
+                    passes = 10
+            else:
+                try:
+                    assert(E.shape == B.shape)
+                    assert(E[0].shape == E[1].shape)
+                    assert(E[0].shape[0] == B[0].shape[0])
+                    assert(E[0].shape[1] == B[0].shape[1])
+                except:
+                    print('invalid arguments, E must be same size as B')
+                    return 0
+                    
+        
+        # calculates max number of differential steps along line
+        if B[0].shape[0] >= B[0].shape[1]:
+            Steps = passes * (B[0].shape[0] / ds)
+        else:
+            Steps = passes * (B[0].shape[1] / ds)
+        
+        # sizes of data files are imoprtant to boundary conditions in 
+        # the tracing routines
+        Xsize = B[0].shape[0]
+        Ysize = B[0].shape[1]
+            
+        # the 3D trace call
+        if E != None:
+            FieldLine2D(Start[0], Start[1], B[0], B[1], Xsize, Ysize, ds, Steps, E[0], E[1])
+        else:
+            FieldLine2D(Start[0], Start[1], B[0], B[1], Xsize, Ysize, ds, Steps)
+        
+        # checks if user would like to trace a different point with differnt
+        # X, Y, Z starting position
         while True:    
             cont = raw_input('Trace another point? Y or N \n')
             if cont == 'Y' or cont == 'y':
                 while True:        
                     try:
-                        Xinit = abs(int(raw_input('\n' + 'Enter X value of starting position: \n')))
-                        Yinit = abs(int(raw_input('Enter Y value of starting position: \n')))                        
+                        Start[0] = abs(float(raw_input('\n' + 'Enter X value of starting position: \n')))
+                        Start[1] = abs(float(raw_input('Enter Y value of starting position: \n')))
+                        ds =  abs(float(raw_input('Enter ds value: \n')))
+                        passes = abs(float(raw_input('Enter number of passes: \n')))
                         break
                     except:
                         print('invalid input try again \n')
                         continue
-                TraceField(Bx, Xinit, By, Yinit)
+                plt.close()
+                TraceField(B, Start, ds, passes, E)
                 break
             elif cont == 'N' or cont == 'n':
                 print('finished')
@@ -147,7 +186,7 @@ def TraceField(Bx, Xinit, By, Yinit, Bz = None, Zinit = None):
 # Core 2D tracing method (RK4)
 # can be called independently, but size of data arrays must be specified
 # cannot function without CalcSlopes2 method
-def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
+def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000, E = None):
     
     print('tracing...')
 
@@ -173,6 +212,9 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
     X = Xinit
     Y = Yinit
     
+    # interpolation variable
+    interp = 0
+    
     # loop to step forward line from initial point
     for step in range(0,steps):
         
@@ -197,7 +239,7 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
         
         # breaks out of loop when X and Y are within dx of their values at 
         # the second step (first step not chosen since it has higher error)
-        if step > 100 and abs(X - Line_X[2]) < dx and abs(Y - Line_Y[2]) < dx:
+        if step > 100 and abs(X - Line_X[2]) < 25*dx and abs(Y - Line_Y[2]) < 25*dx:
             print('Line Completed')
             # trimming the arrays to proper length after completion
             Line_X = Line_X[:step + 1]
@@ -236,6 +278,16 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
         
         X = X + (dx/6)*(K1x + 2*K2x + 2*K3x + K4x)
         Y = Y + (dx/6)*(K1y + 2*K2y + 2*K3y + K4y)
+        
+        # interpolation
+        if E != None:
+            Binterp = CalcSlopes2(X, Y, Bx, By, SizeX, SizeY)
+            BXinterp = Binterp[0]
+            BYinterp = Binterp[1]
+            Einterp = CalcSlopes2(X, Y, E[0], E[1], SizeX, SizeY)
+            EXinterp = Einterp[0]
+            EYinterp = Einterp[1]
+            interp = interp + ((BXinterp*EXinterp) + (BYinterp*EYinterp))
     
     # the figure
     fig1 = plt.figure(1)
@@ -262,6 +314,8 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
             ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .1, color='black')
             ax.set_title('$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
             plt.show()
+            if E != None:
+                print('Sum(E dot B) along line = ' + str(interp))
             break
         # or just the line
         elif Ans == 'N' or Ans == 'n':
@@ -269,6 +323,8 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
             ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .1, color='black') 
             ax.set_title('$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
             plt.show()
+            if E != None:
+                print('Sum(E dot B) along line = ' + str(interp))
             break
         else:
             print('invalid input try again \n')
@@ -278,7 +334,7 @@ def FieldLine2D(Xinit, Yinit, Bx, By, SizeX, SizeY, dx = .1, steps = 100000):
 # Core 3D tracing method (RK4)
 # can be called independently, but size of data arrays must be specified
 # cannot function without CalcSlopes3 method
-def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, steps = 100000):
+def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, steps = 100000, E = None):
     
     print('tracing...')
 
@@ -311,6 +367,9 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
     Line_Y = np.zeros(steps)
     Line_Z = np.zeros(steps)
 
+    # interpolation variable
+    interp = 0
+    
     # loop to step forward line from initial point
     for step in range(0,steps):
         
@@ -363,6 +422,18 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
         X = X + (dx/6)*(K1x + 2*K2x + 2*K3x + K4x)
         Y = Y + (dx/6)*(K1y + 2*K2y + 2*K3y + K4y)
         Z = Z + (dx/6)*(K1z + 2*K2z + 2*K3z + K4z)
+        
+        # interpolation
+        if E != None:
+            Binterp = CalcSlopes3(X, Y, Z, Bx, By, Bz, SizeX, SizeY, SizeZ)
+            BXinterp = Binterp[0]
+            BYinterp = Binterp[1]
+            BZinterp = Binterp[2]
+            Einterp = CalcSlopes3(X, Y, Z, E[0],E[1], E[2], SizeX, SizeY, SizeZ)
+            EXinterp = Einterp[0]
+            EYinterp = Einterp[1]
+            EZinterp = Einterp[2]
+            interp = interp + ((BXinterp*EXinterp) + (BYinterp*EYinterp) + (BZinterp*EZinterp))
     
     # the figure
     fig1 = plt.figure(1)
@@ -426,6 +497,8 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
     print('plotting...')
 
     plt.show()
+    if E != None:
+        print('Sum(E dot B) along line = ' + str(interp))
 
 #-----------------------------------------------------------------------------#
 # HELPER METHODS
@@ -770,4 +843,23 @@ def Puncture(Xinit, Yinit, Zinit, LineX, LineY, LineZ, Bx, By, Bz, SizeX, SizeY,
     ax3.set_xlim([0,SizeY-1])
     
     plt.show()
-    
+  
+
+#-----------------------------------------------------------------------------#
+# TEST
+
+Bx =  np.load('/scratch-fast/asym030/bx.npy')
+By =  np.load('/scratch-fast/asym030/by.npy')
+Bz =  np.load('/scratch-fast/asym030/bz.npy')
+print('loaded')
+Mag = [Bx, By, Bz]
+S = [500, 500, 500]
+TraceField(Mag, S, .01)
+# 
+d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
+Bx = d['by']
+By = d['bx']
+print('loaded')
+Mag = [Bx, By]
+S = [2000, 2000]
+TraceField(Mag, S, .01)
