@@ -2,6 +2,7 @@
 # 2D and 3D magnetic field line tracing program
 
 import numpy as np
+import matplotlib as mpt
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from Py3D.sub import load_movie
@@ -439,21 +440,56 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
             EZinterp = Einterp[2]
             interp = interp + ((BXinterp*EXinterp) + (BYinterp*EYinterp) + (BZinterp*EZinterp))
     
+    
+    print('\n'+'Making colormeshes')
+    Xval = np.linspace(0,SizeX-1,SizeX)
+    Yval = np.linspace(0,SizeY-1,SizeY)
+    Zval = np.linspace(0,SizeZ-1,SizeZ)
+    
+    
+    XZ, YZ = np.meshgrid(Xval, Yval)
+    XZ = XZ.T
+    YZ = YZ.T
+    ZZ = np.full((SizeX, SizeY), 0)
+    cmp=plt.cm.bwr
+    norm = mpt.colors.Normalize(vmin=Bx[:,:,int(Zinit)].min(), vmax=Bx[:,:,int(Zinit)].max())
+    colorsZ = cmp(norm(Bx[:,:,int(Zinit)]))
+    
+    XY, ZY = np.meshgrid(Xval, Zval)
+    XY = XY.T
+    ZY = ZY.T
+    YY = np.full((SizeX, SizeZ), 0)
+    cmp=plt.cm.bwr
+    norm = mpt.colors.Normalize(vmin=Bx[:,int(Yinit),:].min(), vmax=Bx[:,int(Yinit),:].max())
+    colorsY = cmp(norm(Bx[:,int(Yinit),:]))
+    
+    YX, ZX = np.meshgrid(Yval, Zval)
+    ZX = ZX.T
+    YX = YX.T
+    XX = np.full((SizeZ, SizeY), 0)
+    cmp=plt.cm.bwr
+    norm = mpt.colors.Normalize(vmin=Bx[int(Xinit),:,:].min(), vmax=Bx[int(Xinit),:,:].max())
+    colorsX = cmp(norm(Bx[int(Xinit),:,:]))
+    
+    
+    
     # the figure
     fig1 = plt.figure(1)
     fig1.set_size_inches(30,8, forward = True)
     # making 3D plot
     ax = fig1.add_subplot(131, projection = '3d')
     ax.set_title('$Projection$' + ' ' + '$down$' + ' ' + '$X$' + ' ' + '$axis$', fontsize=20)
-    ax.plot(Line_X,Line_Y,Line_Z, linestyle = 'none', marker = '.', markersize = .1)
+    ax.plot_surface(XZ, YZ, ZZ, facecolors = colorsZ, shade = False)
+    ax.plot_surface(XY, YY, ZY, facecolors = colorsY, shade = False)
+    ax.plot_surface(XX, YX, ZX, facecolors = colorsX, shade = False)    
+    ax.plot(Line_X,Line_Y,Line_Z, linestyle = 'none', marker = '.', markersize = .1, color = 'k')
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     # elev = 0 and azim = 0 looks down X axis
     # elev = 90 and azim = 270 looks down Z axis
-    # elev = 0 and azim = 270 looks down Y axis
-    # BE CAREFUL AXIS LIMITS ARE BACKWARDS ie 51.2 to 0 not 0 to 51.2, this is done
-    # to match plots of J.transpose
+    # elev = 0 and azim = 90 looks down Y axis
+    # elev = 0 and azim = 270 looks down Y axis opposite way
     # this plot looks down X axis
     ax.view_init(elev = 0, azim = 0)
     ax.set_xlim([0,SizeX-1])
@@ -462,19 +498,25 @@ def FieldLine3D(Xinit, Yinit, Zinit, Bx, By, Bz, SizeX, SizeY, SizeZ, dx = .1, s
     
     ax2 = fig1.add_subplot(132, projection = '3d')
     ax2.set_title('$Projection$' + ' ' + '$down$' + ' ' + '$Y$' + ' ' + '$axis$', fontsize=20)
-    ax2.plot(Line_X,Line_Y,Line_Z, linestyle = 'none', marker = '.', markersize = .1)
+    ax2.plot_surface(XZ, YZ, ZZ, facecolors = colorsZ, shade = False)
+    ax2.plot_surface(XY, YY, ZY, facecolors = colorsY, shade = False)
+    ax2.plot_surface(XX, YX, ZX, facecolors = colorsX, shade = False) 
+    ax2.plot(Line_X,Line_Y,Line_Z, linestyle = 'none', marker = '.', markersize = .1, color = 'k')
     ax2.set_xlabel('X')
     ax2.set_ylabel('Y')
     ax2.set_zlabel('Z')
     # looking down Y axis
-    ax2.view_init(elev = 0, azim = 270)
+    ax2.view_init(elev = 0, azim = 90)
     ax2.set_xlim([0,SizeX-1])
     ax2.set_ylim([0,SizeY-1])
     ax2.set_zlim([0,SizeZ-1])
     
     ax3 = fig1.add_subplot(133, projection = '3d')
     ax3.set_title('$Projection$' + ' ' + '$down$' + ' ' + '$Z$' + ' ' + '$axis$', fontsize=20)
-    ax3.plot(Line_X,Line_Y,Line_Z, linestyle = 'none', marker = '.', markersize = .1)
+    ax3.plot_surface(XZ, YZ, ZZ, facecolors = colorsZ, shade = False)
+    ax3.plot_surface(XY, YY, ZY, facecolors = colorsY, shade = False)
+    ax3.plot_surface(XX, YX, ZX, facecolors = colorsX, shade = False) 
+    ax3.plot(Line_X,Line_Y,Line_Z, linestyle = 'none', marker = '.', markersize = .1, color = 'k')
     ax3.set_xlabel('X')
     ax3.set_ylabel('Y')
     ax3.set_zlabel('Z')
@@ -886,4 +928,4 @@ Bz =  np.load('/scratch-fast/asym030/bz.npy')
 print('loaded')
 Mag = [Bx, By, Bz]
 S = [1200, 240, 500]
-TraceField(Mag, S, .1, 2)
+TraceField(Mag, S, .1, 5)
