@@ -69,9 +69,8 @@ def TraceField(B, Start, ds, passes = 10):
         Zsize = B[0].shape[2]
             
         # the 3D trace call
-        bb = FieldLine3D(Start[0], Start[1], Start[2], B[0], B[1], B[2], Xsize,
+        FieldLine3D(Start[0], Start[1], Start[2], B[0], B[1], B[2], Xsize,
         Ysize, Zsize, ds, int(Steps))
-        return bb 
         # checks if user would like to trace a different point with differnt
         # X, Y, Z starting position
         while True:    
