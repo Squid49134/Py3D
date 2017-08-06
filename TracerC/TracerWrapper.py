@@ -21,14 +21,7 @@ _lib = ctypes.cdll.LoadLibrary(pathlib)
 
 #-----------------------------------------------------------------------------#
 
-# Master method, takes args, checks validity of args, chooses 2D or 3D
-# B must list of either two, 2 dimensional data arrays [Bx, By] or three
-# 3 dimensional data arrays [Bx, By, Bz].  Start must be list of either
-# [X, Y] starting location for 2D of [X, Y, Z] for 3D.  ds is the differential
-# step, passes is length of the trace, with one pass going from one side of
-# the data array to the other.  E can be a list of either two, 2 dimensional
-# or three, 3 dimensional data arrays to be interpolated along the path
-# of the trace
+# TRACER
 def TraceField(B, Start, ds, passes = 10):
     
     try:
@@ -127,7 +120,7 @@ def FieldLine3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps)
     By = B2.reshape(Xsize*Ysize*Zsize,order='F')
     Bz = B3.reshape(Xsize*Ysize*Zsize,order='F')
     
-    print('Calling c functions')
+    print('Tracing...')
     func(Line_X, Line_Y, Line_Z, Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps)
     print('Plotting!')
     
@@ -163,10 +156,117 @@ def FieldLine3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps)
     
     plt.show()
     
+    
+#-----------------------------------------------------------------------------#
+# SEPARATOR
+
+def MapSeparator(B, ds, passes = 5):
+    N = 32
+    SeparatorX = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
+    SeparatorY = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
+    SeparatorZ = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
+    SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ)
+    print('plotting...')
+    
+    fig1 = plt.figure(1)
+    fig1.set_size_inches(30,8, forward = True)
+    # making 3D plot
+    ax = fig1.add_subplot(131)
+    ax.set_title('$Projection$' + ' ' + '$down$' + ' ' + '$X$' + ' ' + '$axis$', fontsize=20) 
+    ax.plot(SeparatorY,SeparatorZ, linestyle = 'none', marker = '.', markersize = .1, color = 'k')
+    ax.set_xlabel('Y')
+    ax.set_ylabel('Z')
+    ax.set_xlim([0,B[0].shape[1]-1])
+    ax.set_ylim([0,B[0].shape[2]-1])
+    
+    ax2 = fig1.add_subplot(132)
+    ax2.set_title('$Projection$' + ' ' + '$down$' + ' ' + '$Y$' + ' ' + '$axis$', fontsize=20) 
+    ax2.plot(SeparatorX,SeparatorZ, linestyle = 'none', marker = '.', markersize = .1, color = 'k')
+    ax2.set_xlabel('X')
+    ax2.set_ylabel('Z')
+    ax2.set_xlim([0,B[0].shape[0]-1])
+    ax2.set_ylim([0,B[0].shape[2]-1])
+    
+    ax3 = fig1.add_subplot(133)
+    ax3.set_title('$Projection$' + ' ' + '$down$' + ' ' + '$Z$' + ' ' + '$axis$', fontsize=20)
+    ax3.plot(SeparatorX,SeparatorY, linestyle = 'none', marker = '.', markersize = .1, color = 'k')
+    ax3.set_xlabel('X')
+    ax3.set_ylabel('Y')
+    ax3.set_xlim([0,B[0].shape[0]-1])
+    ax3.set_ylim([0,B[0].shape[1]-1])
+    
+    fig1.tight_layout()
+    
+    # the figure
+    fig2 = plt.figure(2)
+    fig2.set_size_inches(8,8, forward = True)
+    # making 3D plot
+    ax4 = fig2.add_subplot(111, projection = '3d')
+    # 500, 180, 250 is inside reconn zone
+    
+    ax4.plot(SeparatorZ, SeparatorX, SeparatorY, linestyle = 'none', marker = '.', markersize = .1)
+    ax4.view_init(elev = 5, azim = 5)
+    ax4.set_zlim([0, B[0].shape[1]-1])
+    ax4.set_ylim([0, B[0].shape[0]-1])
+    ax4.set_xlim([0, B[0].shape[2]-1])
+    ax4.set_xlabel('Z')
+    ax4.set_ylabel('X')
+    ax4.set_zlabel('Y')
+    
+    plt.show()
+
+
+def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ):
+    func          = _lib.SepPoints
+    func.restype  = ctypes.c_double
+    func.argtypes = [ctypes.c_uint, 
+                     ndpointer(ctypes.c_double),
+                     ndpointer(ctypes.c_double), 
+                     ndpointer(ctypes.c_double), 
+                     ndpointer(ctypes.c_double), 
+                     ctypes.c_uint, 
+                     ctypes.c_uint, 
+                     ctypes.c_uint, 
+                     ctypes.c_float, 
+                     ctypes.c_uint,
+                     ndpointer(ctypes.c_double), 
+                     ndpointer(ctypes.c_double), 
+                     ndpointer(ctypes.c_double),]
+     
+    Steps = passes * (B[0].shape[0] / ds)
+    Xsize = B[0].shape[0]
+    Ysize = B[0].shape[1]
+    Zsize = B[0].shape[2]
+    Bx = np.zeros(Xsize * Ysize * Zsize)
+    By = np.zeros(Xsize * Ysize * Zsize)
+    Bz = np.zeros(Xsize * Ysize * Zsize)
+
+    Bx = B[0].reshape(Xsize*Ysize*Zsize,order='F')
+    By = B[1].reshape(Xsize*Ysize*Zsize,order='F')
+    Bz = B[2].reshape(Xsize*Ysize*Zsize,order='F')
+    
+    Start = np.zeros(3)
+    for i in range(0, Xsize/N):
+        print(i)
+        for j in range(0, Zsize/N):
+            Start[0] = (N * i)
+            Start[1] = 257
+            Start[2] = (N * j)
+            Yval = func(N, Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ)
+            SeparatorX[j + (Zsize/N)*(i)] = N * i;
+            SeparatorY[j + (Zsize/N)*(i)] = Yval;
+            SeparatorZ[j + (Zsize/N)*(i)] = N * j;
 
 #-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+
 print('loading')
 B1 =  np.load('/scratch-fast/asym030/bx.npy')
 B2 =  np.load('/scratch-fast/asym030/by.npy')
 B3 =  np.load('/scratch-fast/asym030/bz.npy')
-TraceField([B1, B2, B3], [500, 180, 250], .2, 100)
+print('loaded')
+
+
+#TraceField([B1, B2, B3], [500, 180, 250], .1, 100)
+
+MapSeparator([B1, B2, B3], 10, 2)
