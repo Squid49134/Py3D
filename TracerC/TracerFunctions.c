@@ -11,6 +11,9 @@
 #define By(i,j,k)  By[(i) + (j)*SizeX + (k)*SizeX*SizeY]
 #define Bz(i,j,k)  Bz[(i) + (j)*SizeX + (k)*SizeX*SizeY]
 
+#define Bx2(i,j)  Bx[(i) + (j)*SizeX]
+#define By2(i,j)  By[(i) + (j)*SizeX]
+
 
 // 3D slope calculator for RK4 procedure
 //double * CalcSlopes3(double x, double y, double z, double * Bx, double * By,
@@ -326,6 +329,198 @@ void CalcSlopes3(double x, double y, double z, double * Bx, double * By, double 
 
 }
 
+void CalcSlopes2(double x, double y, float * Bx, float * By, int SizeX, int SizeY, double * B){ 
+
+    double Wx, Wy;
+    int i, j, i1, j1;
+    
+    double Bx_ij, Bx_i1j, Bx_ij1, Bx_i1j1, By_ij, By_i1j, By_ij1, By_i1j1;
+    
+    if ((x >= 0) && (y >= 0)){
+        // if both x, y and z are greater than 0, modulus is used to find point (i,j,k)
+        Wx = fmod(x, 1);
+        Wy = fmod(y, 1);
+        i = (int) x;
+        j = (int) y;
+        i1 = i + 1;
+        j1 = j + 1;
+        if (i == (SizeX - 1)){
+            i1 = 0;
+        }
+        if (i > (SizeX - 1)){
+            i = i - SizeX;            
+            i1 = i1 - SizeX;
+        }
+        if (j == (SizeY - 1)){
+            j1 = 0;
+        }
+        if (j > (SizeY - 1)){
+            j = j - SizeY;            
+            j1 = j1 - SizeY;
+        }
+    }
+    else if (y >= 0){
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wy = fmod(y, 1);
+        j = (int) y;
+        i1 = i + 1;
+        j1 = j + 1;
+        if (j == (SizeY - 1)){
+            j1 = 0;
+        }
+        if (j > (SizeY - 1)){
+            j = j - SizeY;            
+            j1 = j1 - SizeY;
+        }
+        if (i == -1){
+            i = SizeX - 1;      
+        }
+        if (i < -1){
+            i = i + SizeX;
+            i1 = i1 + SizeX;        
+        }
+    }
+    else if (x >= 0){
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        Wx = fmod(x, 1);
+        i = (int) x;
+        i1 = i + 1;
+        j1 = j + 1;
+        if (i == (SizeX - 1)){
+            i1 = 0;
+        }
+        if (i > (SizeX - 1)){
+            i = i - SizeX;            
+            i1 = i1 - SizeX;
+        }
+        if (j == -1){
+            j = SizeY - 1;      
+        }
+        if (j < -1){
+            j = j + SizeY;
+            j1 = j1 + SizeY;        
+        }
+    }
+    else{
+        // if x, y or z is below 0, modulus wont work properly
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        i1 = i + 1;
+        j1 = j + 1;
+        if (i == -1){
+            i = SizeX - 1;      
+        }
+        if (i < -1){
+            i = i + SizeX;
+            i1 = i1 + SizeX;        
+        }
+        if (j == -1){
+            j = SizeY - 1;      
+        }
+        if (j < -1){
+            j = j + SizeY;
+            j1 = j1 + SizeY;        
+        }
+    }
+
+    // identifying Bx, By and Bz at closest 4 data grid points
+    Bx_ij = Bx2(i,j);
+    Bx_i1j = Bx2(i1,j);
+    Bx_ij1 = Bx2(i,j1);
+    Bx_i1j1 = Bx2(i1,j1);
+    
+    By_ij = By2(i,j);
+    By_i1j = By2(i1,j);
+    By_ij1 = By2(i,j1);
+    By_i1j1 = By2(i1,j1);
+
+    // finding average Bx, By, Bz and Bm at field line point (x,y,z) from 8 nearest 
+    // neighboring data points (i,j,k), (i+1,j,k), (i,j+1,k), (i+1,j+1,k), (i,j,k+1), 
+    // (i+1,j,k+1), (i,j+1,k+1) and (i+1,j+1,k+1) at field line point (x,y,z)
+    double B_Wx = (1-Wx)*(1-Wy)*Bx_ij + (1-Wx)*Wy*Bx_ij1 + Wx*(1-Wy)*Bx_i1j + Wx*Wy*Bx_i1j1;
+    double B_Wy = (1-Wx)*(1-Wy)*By_ij + (1-Wx)*Wy*By_ij1 + Wx*(1-Wy)*By_i1j + Wx*Wy*By_i1j1;
+    double B_Wm = sqrt(pow(B_Wx, 2) + pow(B_Wy, 2));
+
+    // returns slopes of field and magnitude at point (x, y, z)
+    B[0] = B_Wx/B_Wm;
+    B[1] = B_Wy/B_Wm;
+
+}
+
+int FieldLine2D(double* Line_X, double * Line_Y, double Xinit, double Yinit, float * Bx, float * By, int SizeX, int SizeY, float dx, int steps){
+    
+    // RK4 variables
+    double K1x, K2x, K3x, K4x, K1y, K2y, K3y, K4y = 0;
+
+    double Slopes[3];
+    double Slopes2[3];
+    double Slopes3[3];
+    double Slopes4[3];
+  
+    double X;
+    double Y;
+    // initial point for a field line
+    X = Xinit;
+    Y = Yinit;
+    
+    // loop to step forward line from initial point
+    int step;    
+    for (step = 0; step < steps; step++){  
+        
+        // for periodic boundaries checking if X, or Y has moved outside 
+        // range (-.5 to size-.5) and if so switches to other side of data grid
+        if (X < -.5){
+            X = X + SizeX;
+        }
+        if (Y < -.5){
+            Y = Y + SizeY;
+        }
+        if (X > (SizeX - .5)){
+            X = X - SizeX;
+        }
+        if (Y > (SizeY - .5)){
+            Y = Y - SizeY;
+        }
+        
+        // adding points (X,Y) to field line
+        Line_X[step] = X;
+        Line_Y[step] = Y;
+        
+        // breaks out of loop when X and Y are within dx of their values at 
+        // the second step (first step not chosen since it has higher error)
+        if ((step > 25) && (abs(X - Line_X[2]) < dx) && (abs(Y - Line_Y[2]) < dx)){
+            int ArrayLength = step + 1;
+            return ArrayLength;
+            break;
+        }
+        
+        // RK4
+        CalcSlopes2(X, Y, Bx, By, SizeX, SizeY, Slopes);
+        K1x = Slopes[0];
+        K1y = Slopes[1];
+        
+        CalcSlopes2(X + (dx/2)*K1x, Y + (dx/2)*K1y, Bx, By, SizeX, SizeY, Slopes2);
+        K2x = Slopes2[0];
+        K2y = Slopes2[1];
+        
+        CalcSlopes2(X + (dx/2)*K2x, Y + (dx/2)*K2y, Bx, By, SizeX, SizeY, Slopes3);
+        K3x = Slopes3[0];
+        K3y = Slopes3[1];
+        
+        CalcSlopes2(X + dx*K3x, Y + dx*K3y, Bx, By, SizeX, SizeY, Slopes4);
+        K4x = Slopes4[0];
+        K4y = Slopes4[1];
+        
+        X = X + (dx/6)*(K1x + 2*K2x + 2*K3x + K4x);
+        Y = Y + (dx/6)*(K1y + 2*K2y + 2*K3y + K4y);
+    }
+    printf("Warning, line not completed");
+    return 0;
+}
 
 // Core 3D tracing method (RK4)
 void FieldLine3D(double * Line_X, double * Line_Y, double * Line_Z, double Xinit, double Yinit, double Zinit, double * Bx, double * By, double * Bz, int SizeX, int SizeY, int SizeZ, float dx, int steps){
@@ -554,7 +749,7 @@ double SepPoints(int N, double * Start, double * Bx, double * By, double * Bz, i
 
 //int main(){
 //    printf("\n");
-//   printf("\n");
+//    printf("\n");
 //    printf("Cleared");
 //    printf("\n");
 //    printf("\n");

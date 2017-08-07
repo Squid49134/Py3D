@@ -6,6 +6,7 @@ import matplotlib as mpt
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import AutoMinorLocator
+from Py3D.sub import load_movie
 import os
 
 # now for linking C to python
@@ -62,7 +63,7 @@ def TraceField(B, Start, ds = .1, passes = 10):
         Zsize = B[0].shape[2]
             
         # the 3D trace call
-        FieldLine3D(Start[0], Start[1], Start[2], B[0], B[1], B[2], Xsize,
+        RK4_3D(Start[0], Start[1], Start[2], B[0], B[1], B[2], Xsize,
         Ysize, Zsize, ds, int(Steps))
         # checks if user would like to trace a different point with differnt
         # X, Y, Z starting position
@@ -80,7 +81,7 @@ def TraceField(B, Start, ds = .1, passes = 10):
                     except:
                         print('invalid input try again \n')
                         continue
-                plt.close()
+                plt.close('all')
                 TraceField(B, Start, ds, passes)
                 break
             elif cont == 'N' or cont == 'n':
@@ -90,7 +91,102 @@ def TraceField(B, Start, ds = .1, passes = 10):
                 print('invalid input try again \n')
                 continue
             
-def FieldLine3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
+    else:
+        # checks validity of provided args
+        try:
+            assert(B[0].shape == B[1].shape)
+            assert(0 < Start[0] < B[0].shape[0] - 1)
+            assert(0 < Start[1] < B[0].shape[1] - 1)
+        except:
+            print('invalid arguments, B components must be equal sized arrays,')
+            print('X, Y must be within the size of B arrays')
+            return 0
+        
+        # calculates max number of differential steps along line
+        if B[0].shape[0] >= B[0].shape[1]:
+            Steps = passes * (B[0].shape[0] / ds)
+        else:
+            Steps = passes * (B[0].shape[1] / ds)
+        
+        # sizes of data files are imoprtant to boundary conditions in 
+        # the tracing routines
+        Xsize = B[0].shape[0]
+        Ysize = B[0].shape[1]
+            
+        # the 2D trace call
+        RK4_2D(Start[0], Start[1], B[0], B[1], Xsize, Ysize, ds, Steps)
+        
+        # checks if user would like to trace a different point with differnt
+        # X, Y, Z starting position
+        while True:    
+            cont = raw_input('Trace another point? Y or N \n')
+            if cont == 'Y' or cont == 'y':
+                while True:        
+                    try:
+                        Start[0] = abs(float(raw_input('\n' + 'Enter X value of starting position: \n')))
+                        Start[1] = abs(float(raw_input('Enter Y value of starting position: \n')))
+                        ds =  abs(float(raw_input('Enter ds value: \n')))
+                        passes = abs(float(raw_input('Enter number of passes: \n')))
+                        break
+                    except:
+                        print('invalid input try again \n')
+                        continue
+                plt.close('all')
+                TraceField(B, Start, ds, passes)
+                break
+            elif cont == 'N' or cont == 'n':
+                print('finished')
+                break
+            else:
+                print('invalid input try again \n')
+                continue
+            
+def RK4_2D(Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
+    func          = _lib.FieldLine2D
+    func.restype  = int
+    func.argtypes = [ndpointer(ctypes.c_double),  
+                     ndpointer(ctypes.c_double), 
+                     ctypes.c_double,
+                     ctypes.c_double, 
+                     ndpointer(ctypes.c_float), 
+                     ndpointer(ctypes.c_float), 
+                     ctypes.c_uint, 
+                     ctypes.c_uint, 
+                     ctypes.c_float, 
+                     ctypes.c_uint]
+                     
+    Line_X = np.zeros(int(Steps))
+    Line_Y = np.zeros(int(Steps))
+    
+    Bx = np.zeros(Xsize * Ysize)
+    By = np.zeros(Xsize * Ysize)
+
+    Bx = B1.reshape(Xsize*Ysize,order='F')
+    By = B2.reshape(Xsize*Ysize,order='F')
+    
+    print('Tracing...')
+    Length = func(Line_X, Line_Y, Xinit, Yinit, Bx, By, Xsize, Ysize, ds, int(Steps))
+    Line_X = Line_X[:Length]
+    Line_Y = Line_Y[:Length]
+    
+    # the figure
+    fig1 = plt.figure(1)
+    fig1.set_size_inches(10,10, forward = True)
+    ax = fig1.add_subplot(111)
+    ax.set_ylim([0, Ysize-1])
+    ax.set_xlim([0, Xsize-1])
+    
+    print('\n' + 'Calculating |B|...')
+    Bm = np.sqrt(B1**2 + B2**2)
+
+    print('\n' + 'plotting...')
+    ax.pcolormesh(Bm.T)            
+    ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .1, color='black')
+    ax.set_title('$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
+    
+    plt.show()
+            
+def RK4_3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
     func          = _lib.FieldLine3D
     func.restype  = None
     func.argtypes = [ndpointer(ctypes.c_double), 
@@ -153,6 +249,21 @@ def FieldLine3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps)
     ax3.set_ylim([0,Ysize-1])
     
     fig1.tight_layout()
+    
+    fig2 = plt.figure(2)
+    fig2.set_size_inches(8,8, forward = True)
+    # making 3D plot
+    ax4 = fig2.add_subplot(111, projection = '3d')
+    # 500, 180, 250 is inside reconn zone
+    
+    ax4.plot(Line_Z, Line_X, Line_Y, linestyle = 'none', marker = '.', markersize = .1)
+    ax4.view_init(elev = 5, azim = 5)
+    ax4.set_zlim([0, Ysize-1])
+    ax4.set_ylim([0, Xsize-1])
+    ax4.set_xlim([0, Zsize-1])
+    ax4.set_xlabel('Z')
+    ax4.set_ylabel('X')
+    ax4.set_zlabel('Y')    
     
     plt.show()
     
@@ -266,13 +377,17 @@ def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ):
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
 
-print('loading')
-B1 =  np.load('/scratch-fast/asym030/bx.npy')
-B2 =  np.load('/scratch-fast/asym030/by.npy')
-B3 =  np.load('/scratch-fast/asym030/bz.npy')
-print('loaded')
-
-
+#print('loading')
+#B1 =  np.load('/scratch-fast/asym030/bx.npy')
+#B2 =  np.load('/scratch-fast/asym030/by.npy')
+#B3 =  np.load('/scratch-fast/asym030/bz.npy')
+#print('loaded')
 #TraceField([B1, B2, B3], [500, 180, 250], .1, 100)
 
-MapSeparator([B1, B2, B3], 10, 2)
+d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
+Bx = d['by']
+By = d['bx']
+print('loaded')
+TraceField([Bx, By], [2000, 2000], .1, 5)
+
+#MapSeparator([B1, B2, B3], 10, 2)
