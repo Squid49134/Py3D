@@ -22,7 +22,7 @@ _lib = ctypes.cdll.LoadLibrary(pathlib)
 #-----------------------------------------------------------------------------#
 
 # TRACER
-def TraceField(B, Start, ds, passes = 10):
+def TraceField(B, Start, ds = .1, passes = 10):
     
     try:
         if (len(B) == 2 or len(B) == 3):
@@ -160,12 +160,18 @@ def FieldLine3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps)
 #-----------------------------------------------------------------------------#
 # SEPARATOR
 
-def MapSeparator(B, ds, passes = 5):
-    N = 32
+def MapSeparator(B, ds = 10, passes = 2):
+    N = 1
     SeparatorX = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
     SeparatorY = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
     SeparatorZ = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
     SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ)
+    print('saving...')
+    
+    np.save('FullResSepX1', SeparatorX)
+    np.save('FullResSepY1', SeparatorY)
+    np.save('FullResSepZ1', SeparatorZ)
+    
     print('plotting...')
     
     fig1 = plt.figure(1)

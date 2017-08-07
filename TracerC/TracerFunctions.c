@@ -498,25 +498,22 @@ double SepPoints(int N, double * Start, double * Bx, double * By, double * Bz, i
     double Y0;
     Y0 = Start[1];
     SearchDown = 0;
-    int SP1;
-    int SP2;
+    int inflow;
+    int inflow2;
     while (1 == 1){
-        SP1 = FieldLineSep(Start[0], Start[1], Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);
-        SP2 = FieldLineSep(Start[0], Start[1] + inc, Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);
-        if (SP1 == 0 && SP2 == 0){
+        inflow = FieldLineSep(Start[0], Start[1], Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);
+        inflow2 = FieldLineSep(Start[0], Start[1] + inc, Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);
+        if (inflow == 0 && inflow2 == 0){
             Start[1] = Start[1] + inc;
-            continue;
+            inc = inc / 2;
+            break;
         }
-        else if (SP1 == 0 && SP2 == 1){
-            if (inc < .2){
-                Start[1] = Start[1] + (inc/2);
-                break;
-            }
-            inc = inc/4;
-            continue;
+        else if (inflow == 0 && inflow2 == 1){
+            inc = inc / 2;
+            break;
         }
         else if (SearchDown == 0){
-            //Y0 = 25 and searching incremeents of .25 worked
+            //Y0 = 25 and searching increments of .25 worked
             if (Start[1] < (Y0-10)){
                 SearchDown = 1;
                 Start[1] = Y0;
@@ -533,6 +530,20 @@ double SepPoints(int N, double * Start, double * Bx, double * By, double * Bz, i
                 return;
             }
             Start[1] = Start[1] + .1;
+        }
+    }
+    while (1 == 1){
+        inflow2 = FieldLineSep(Start[0], Start[1] + inc, Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);
+        if (inflow2 == 1){
+            if (inc < .25){
+                Start[1] = Start[1] + (inc/2);
+                break;
+            }
+            inc = inc/2;        
+        }
+        else if (inflow2 == 0){
+            Start[1] = Start[1] + inc;
+            inc = inc / 2;
         }
     }
     return Start[1];
