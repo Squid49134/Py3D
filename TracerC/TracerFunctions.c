@@ -689,12 +689,13 @@ double SepPoints(int N, double * Start, double * Bx, double * By, double * Bz, i
     int i;
     int j;   
     int SearchDown;
-    float inc = 50.0;
+    float inc = 6;
     double Y0;
     Y0 = Start[1];
     SearchDown = 0;
     int inflow;
     int inflow2;
+    float scan = .5;
     while (1 == 1){
         inflow = FieldLineSep(Start[0], Start[1], Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);
         inflow2 = FieldLineSep(Start[0], Start[1] + inc, Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);
@@ -709,28 +710,28 @@ double SepPoints(int N, double * Start, double * Bx, double * By, double * Bz, i
         }
         else if (SearchDown == 0){
             //Y0 = 25 and searching increments of .25 worked
-            if (Start[1] < (Y0-10)){
+            if (Start[1] < (Y0 - inc)){
                 SearchDown = 1;
                 Start[1] = Y0;
                 continue;
             }
-            Start[1] = Start[1] - .1;
+            Start[1] = Start[1] - scan;
         }
         else{
-            if (Start[1] > (Y0 + 10)){
-                printf("Warning could not find separator at point : \n");
-                printf("%lf", Start[0]);
-                printf(", ");
-                printf("%lf", Start[2]);
-                return;
+            if (Start[1] > (Y0 + inc)){
+                SearchDown = 0;
+                inc = inc * 5;
+                scan = scan / 4;
+                Start[1] = Y0;
+                continue;
             }
-            Start[1] = Start[1] + .1;
+            Start[1] = Start[1] + scan;
         }
     }
     while (1 == 1){
         inflow2 = FieldLineSep(Start[0], Start[1] + inc, Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);
         if (inflow2 == 1){
-            if (inc < .25){
+            if (inc < .5){
                 Start[1] = Start[1] + (inc/2);
                 break;
             }

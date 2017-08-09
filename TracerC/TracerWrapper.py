@@ -279,9 +279,9 @@ def MapSeparator(B, ds = 10, passes = 2):
     SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ)
     print('saving...')
     
-    np.save('FullResSepX1', SeparatorX)
-    np.save('FullResSepY1', SeparatorY)
-    np.save('FullResSepZ1', SeparatorZ)
+    np.save('FullResSepX4', SeparatorX)
+    np.save('FullResSepY4', SeparatorY)
+    np.save('FullResSepZ4', SeparatorZ)
     
     print('plotting...')
     
@@ -363,31 +363,41 @@ def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ):
     Bz = B[2].reshape(Xsize*Ysize*Zsize,order='F')
     
     Start = np.zeros(3)
+    Start[0] = 0
+    Start[1] = 319
+    Start[2] = 0
+    Yval = func(N, Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ)
+    SeparatorX[0] = 0
+    SeparatorY[0] = Yval
+    SeparatorZ[0] = 0
+
     for i in range(0, Xsize/N):
         print(i)
         for j in range(0, Zsize/N):
+            if ((i == 0) and (j == 0)):
+                continue
             Start[0] = (N * i)
-            Start[1] = 257
+            Start[1] = SeparatorY[(j + (Zsize/N)*(i))-1]
             Start[2] = (N * j)
             Yval = func(N, Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ)
-            SeparatorX[j + (Zsize/N)*(i)] = N * i;
-            SeparatorY[j + (Zsize/N)*(i)] = Yval;
-            SeparatorZ[j + (Zsize/N)*(i)] = N * j;
+            SeparatorX[j + (Zsize/N)*(i)] = N * i
+            SeparatorY[j + (Zsize/N)*(i)] = Yval
+            SeparatorZ[j + (Zsize/N)*(i)] = N * j
 
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
 
-#print('loading')
-#B1 =  np.load('/scratch-fast/asym030/bx.npy')
-#B2 =  np.load('/scratch-fast/asym030/by.npy')
-#B3 =  np.load('/scratch-fast/asym030/bz.npy')
-#print('loaded')
-#TraceField([B1, B2, B3], [500, 180, 250], .1, 100)
-
-d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
-Bx = d['by']
-By = d['bx']
+print('loading')
+B1 =  np.load('/scratch-fast/asym030/bx.npy')
+B2 =  np.load('/scratch-fast/asym030/by.npy')
+B3 =  np.load('/scratch-fast/asym030/bz.npy')
 print('loaded')
-TraceField([Bx, By], [2000, 2000], .1, 5)
+#TraceField([B1, B2, B3], [1200, 293.87, 500], 25, 10)
 
-#MapSeparator([B1, B2, B3], 10, 2)
+#d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
+#Bx = d['by']
+#By = d['bx']
+#print('loaded')
+#TraceField([Bx, By], [2000, 2000], .1, 5)
+
+MapSeparator([B1, B2, B3], 2, 1.5)
