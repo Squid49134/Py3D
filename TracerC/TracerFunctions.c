@@ -642,15 +642,8 @@ int FieldLineSep(double Xinit, double Yinit, double Zinit, double * Bx, double *
         }
         
         CalcSlopes3(X, Y, Z, Bx, By, Bz, SizeX, SizeY, SizeZ, SlopeCheck);
-        if (BxInit > 0){
-            if (SlopeCheck[0] < 0){
-                return 0;
-            }
-        }
-        else{
-            if (SlopeCheck[0] > 0){
-                return 0;
-            }
+        if (SlopeCheck[0] < 0){
+           return 0;
         }
 
         // RK4, slightly different implementation from 2D for speed
@@ -695,38 +688,27 @@ double SepPoints(int N, double * Start, double * Bx, double * By, double * Bz, i
     SearchDown = 0;
     int inflow;
     int inflow2;
-    float scan = .5;
+    float scan = .4;
     while (1 == 1){
         inflow = FieldLineSep(Start[0], Start[1], Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);
         inflow2 = FieldLineSep(Start[0], Start[1] + inc, Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);
         if (inflow == 0 && inflow2 == 0){
             Start[1] = Start[1] + inc;
-            inc = inc / 2;
+            inc = inc / 4;
             break;
         }
         else if (inflow == 0 && inflow2 == 1){
-            inc = inc / 2;
+            inc = inc / 4;
             break;
         }
-        else if (SearchDown == 0){
-            //Y0 = 25 and searching increments of .25 worked
-            if (Start[1] < (Y0 - inc)){
-                SearchDown = 1;
-                Start[1] = Y0;
-                continue;
-            }
-            Start[1] = Start[1] - scan;
+        if (Start[1] < (Y0 - inc)){
+            inc = inc * 2;
+            scan = scan / 2;
+            Start[1] = Y0;
+            continue;
         }
-        else{
-            if (Start[1] > (Y0 + inc)){
-                SearchDown = 0;
-                inc = inc * 5;
-                scan = scan / 4;
-                Start[1] = Y0;
-                continue;
-            }
-            Start[1] = Start[1] + scan;
-        }
+        Start[1] = Start[1] - scan;
+       
     }
     while (1 == 1){
         inflow2 = FieldLineSep(Start[0], Start[1] + inc, Start[2], Bx, By, Bz, SizeX, SizeY, SizeZ, dx, (int) Steps);

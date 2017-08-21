@@ -6,7 +6,7 @@ import matplotlib as mpt
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import AutoMinorLocator
-from Py3D.sub import load_movie
+#from Py3D.sub import load_movie
 import os
 
 # now for linking C to python
@@ -279,9 +279,9 @@ def MapSeparator(B, ds = 10, passes = 2):
     SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ)
     print('saving...')
     
-    np.save('FullResSepX4', SeparatorX)
-    np.save('FullResSepY4', SeparatorY)
-    np.save('FullResSepZ4', SeparatorZ)
+    np.save('SepX5dx2', SeparatorX)
+    np.save('SepY5dx2', SeparatorY)
+    np.save('SepZ5dx2', SeparatorZ)
     
     print('plotting...')
     
@@ -364,7 +364,7 @@ def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ):
     
     Start = np.zeros(3)
     Start[0] = 0
-    Start[1] = 319
+    Start[1] = 318
     Start[2] = 0
     Yval = func(N, Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ)
     SeparatorX[0] = 0
@@ -384,6 +384,95 @@ def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ):
             SeparatorY[j + (Zsize/N)*(i)] = Yval
             SeparatorZ[j + (Zsize/N)*(i)] = N * j
 
+
+def SeparatorSlice():
+    print('Slice X or Z value:')
+    Axis = str(raw_input())
+    
+    if ((Axis == 'X') or (Axis == 'x')):
+        print('')
+        print('Enter Path To Separator Y Value Data:')
+        PathY = raw_input()
+        print('Enter Path To Separator Z Value Data:')
+        PathZ = raw_input()
+        while True:
+            print('Enter X Value For Slice:' )
+            SliceX = int(raw_input())
+            print('Loading')
+            SepY =  np.load(PathY)
+            SepZ =  np.load(PathZ)
+            print('Loaded')
+            
+            X = SliceX
+            
+            First = 1024*(X)
+            SepYSlice = SepY[First:First+1023]
+            SepZSlice = SepZ[First:First+1023]
+            
+            fig = plt.figure(1)
+            fig.set_size_inches(30,8, forward = True)
+            # making 3D plot
+            ax = fig.add_subplot(111)
+            # 500, 180, 250 is inside reconn zone
+            print('plotting...')
+            ax.plot(SepZSlice, SepYSlice)
+            
+            fig.tight_layout()
+            
+            print('Slice another point? Y/N')
+            ans = raw_input()
+            if ((ans == 'Y') or (ans == 'y')):
+                1
+            else:
+                break            
+            
+            plt.show()
+        
+    elif ((Axis == 'Z') or (Axis == 'z')):
+        print('')
+        print('Enter Path To Separator X Value Data:')
+        PathX = raw_input()
+        print('Enter Path To Separator Y Value Data:')
+        PathY = raw_input()
+        while True:
+            print('Enter Z Value For Slice:' )
+            SliceZ = int(raw_input())
+            print('Loading')
+            SepX =  np.load(PathX)
+            SepY =  np.load(PathY)
+            print('Loaded')
+            
+            Z = SliceZ
+            
+            SepYSlice = np.zeros(2048)        
+            SepXSlice = np.zeros(2048)        
+            
+            for i in range(0, 2048):
+                SepYSlice[i] = SepY[1024*i + Z]
+                SepXSlice[i] = SepX[1024*i + Z]
+            
+            fig = plt.figure(1)
+            fig.set_size_inches(30,8, forward = True)
+            # making 3D plot
+            ax = fig.add_subplot(111)
+            # 500, 180, 250 is inside reconn zone
+            print('plotting...')
+            ax.plot(SepXSlice, SepYSlice)
+            
+            fig.tight_layout()
+            
+            print('Slice another point? Y/N')
+            ans = raw_input()
+            if ((ans == 'Y') or (ans == 'y')):
+                1
+            else:
+                break            
+            
+            plt.show()
+            
+    else:
+        print('invalid option')
+
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
 
@@ -392,7 +481,7 @@ B1 =  np.load('/scratch-fast/asym030/bx.npy')
 B2 =  np.load('/scratch-fast/asym030/by.npy')
 B3 =  np.load('/scratch-fast/asym030/bz.npy')
 print('loaded')
-#TraceField([B1, B2, B3], [1200, 293.87, 500], 25, 10)
+#TraceField([B1, B2, B3], [1439, 256, 313], 2, 1.5)
 
 #d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
 #Bx = d['by']
@@ -401,3 +490,5 @@ print('loaded')
 #TraceField([Bx, By], [2000, 2000], .1, 5)
 
 MapSeparator([B1, B2, B3], 2, 1.5)
+
+#SeparatorSlice()
