@@ -469,8 +469,10 @@ int FieldLine2D(double* Line_X, double * Line_Y, double Xinit, double Yinit, flo
     
     // loop to step forward line from initial point
     int step;    
+    int killin10000 = 0;
+    int kill = 0;
+    int ArrayLength;
     for (step = 0; step < steps; step++){  
-        
         // for periodic boundaries checking if X, or Y has moved outside 
         // range (-.5 to size-.5) and if so switches to other side of data grid
         if (X < -.5){
@@ -492,8 +494,24 @@ int FieldLine2D(double* Line_X, double * Line_Y, double Xinit, double Yinit, flo
         
         // breaks out of loop when X and Y are within dx of their values at 
         // the second step (first step not chosen since it has higher error)
-        if ((step > 25) && (abs(X - Line_X[2]) < dx) && (abs(Y - Line_Y[2]) < dx)){
-            int ArrayLength = step + 1;
+        if ((step > 5) && (fabs(X - Line_X[0]) < dx) && (fabs(Y - Line_Y[0]) < dx)){
+            ArrayLength = step + 1;
+            return ArrayLength;
+            break;
+        }
+        else if ((step > 100) && (fabs(X - Line_X[0]) < (25*dx)) && (fabs(Y - Line_Y[0]) < (25*dx))){
+            ArrayLength = step + 1;
+            killin10000 = 0;
+            kill = 1;
+        }
+        else if ((step > 1000) && (fabs(X - Line_X[0]) < (250*dx)) && (fabs(Y - Line_Y[0]) < (250*dx))){
+            ArrayLength = step + 1;
+            killin10000 = 0;
+            kill = 1;
+            
+        }
+    
+        if ((kill == 1) && (killin10000 == 10000)){
             return ArrayLength;
             break;
         }
@@ -517,9 +535,11 @@ int FieldLine2D(double* Line_X, double * Line_Y, double Xinit, double Yinit, flo
         
         X = X + (dx/6)*(K1x + 2*K2x + 2*K3x + K4x);
         Y = Y + (dx/6)*(K1y + 2*K2y + 2*K3y + K4y);
+
+        killin10000++;
     }
     printf("Warning, line not completed");
-    return 0;
+    return steps;
 }
 
 // Core 3D tracing method (RK4)
@@ -596,6 +616,19 @@ void FieldLine3D(double * Line_X, double * Line_Y, double * Line_Z, double Xinit
 
     }
 
+}
+
+int Punct(double * PunctAxis, double Val, float ds, int Steps, double * OtherAxis1, double * OtherAxis2, double * Points1, double * Points2){
+    int i;
+    int Points = 0;
+    for (i = 0; i < Steps; i++){
+        if (((Val - (ds/2)) < PunctAxis[i]) && (PunctAxis[i] < (Val + (ds/2)))){
+            Points1[Points] = OtherAxis1[i];
+            Points2[Points] = OtherAxis2[i];
+            Points++;
+        }
+    }
+    return Points;
 }
 
 int FieldLineSep(double Xinit, double Yinit, double Zinit, double * Bx, double * By, double * Bz, int SizeX, int SizeY, int SizeZ, float dx, int steps){
@@ -680,12 +713,10 @@ int FieldLineSep(double Xinit, double Yinit, double Zinit, double * Bx, double *
 
 double SepPoints(int N, double * Start, double * Bx, double * By, double * Bz, int SizeX, int SizeY, int SizeZ, float dx, int Steps, double * SeparatorX, double * SeparatorY, double * SeparatorZ){
     int i;
-    int j;   
-    int SearchDown;
+    int j;
     float inc = 6;
     double Y0;
     Y0 = Start[1];
-    SearchDown = 0;
     int inflow;
     int inflow2;
     float scan = .4;
