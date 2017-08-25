@@ -1113,11 +1113,11 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
 
 # 2D TESTS
 
-#d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
-#Bx = d['by']
-#By = d['bx']
+d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
+Bx = d['by']
+By = d['bx']
 
-#TraceField([Bx, By], [2000, 2000])
+TraceField([Bx, By], [2000, 2000])
 
 # 3D TESTS
 print('Loading')
@@ -1125,22 +1125,22 @@ BX =  np.load('/scratch-fast/asym030/bx.npy')
 BY =  np.load('/scratch-fast/asym030/by.npy')
 BZ =  np.load('/scratch-fast/asym030/bz.npy')
 
-#EX =  np.load('/scratch-fast/asym030/ex.npy')
-#EY =  np.load('/scratch-fast/asym030/ey.npy')
-#EZ =  np.load('/scratch-fast/asym030/ez.npy')
-#print('Loaded')
+EX =  np.load('/scratch-fast/asym030/ex.npy')
+EY =  np.load('/scratch-fast/asym030/ey.npy')
+EZ =  np.load('/scratch-fast/asym030/ez.npy')
+print('Loaded')
 
 #SepY0 = np.load('SepY5.npy')[0]
 #TraceField([BX, BY, BZ], [1000, 400, 500], .5, 100)
 #TraceField([BX, BY, BZ], [500, 200, 500], .5, 100, ['TraceX6.npy', 'TraceY6.npy', 'TraceZ6.npy'])
-#TraceField([BX, BY, BZ, EX, EY, EZ], [1000, 400, 500], .5, 100)
+TraceField([BX, BY, BZ, EX, EY, EZ], [1000, 400, 500], .5, 100)
 
-#SeparatorSlice('SepX4dx2.npy', 'SepY4dx2.npy', 'SepZ4dx2.npy', 2048, 1024, 1024, [BX, BY, BZ])
-SeparatorSlice('SepX5.npy', 'SepY5.npy', 'SepZ5.npy', 2048, 1024, 1024)
+SeparatorSlice('UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
+#SeparatorSlice('UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 2048, 1024, 1024)
 
-#SeparatorLoader('SepX7dx3.npy','SepY7dx3.npy','SepZ7dx3.npy', 2048, 1024, 1024, [BX, BY, BZ])
+#SeparatorLoader('UpperSepX.npy','UpperSepY.npy','UpperSepZ.npy', 2048, 1024, 1024)
 # CAREFUL don't run these one after another plots will mix
-SeparatorLoader('SepX5.npy','SepY5.npy','SepZ5.npy', 2048, 1024, 1024)
+SeparatorLoader('UpperSepX.npy','UpperSepY.npy','UpperSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
 
 # 318 for Upper
 # 150 for Lower
