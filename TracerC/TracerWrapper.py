@@ -289,7 +289,7 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
     fig1 = plt.figure(1)
     fig1.set_size_inches(5, 10, forward = True)
     plt.subplots_adjust(left = .1, bottom = .06, right = .9, top = .86, wspace = None, hspace = .45)
-    fig1.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(Steps*ds/B[0].shape[0]), fontsize = 18, y = .99)
+    fig1.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 18, y = .99)
     fig1.patch.set_facecolor('lightgrey')
     # making 3D plot
     
@@ -346,7 +346,7 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
         ax4.set_xlabel('X')
         ax4.yaxis.set_label_position('right')
         ax4.yaxis.labelpad = 10
-        ax4.set_title('$E$' + ' ' + '$Interpolated$' + ' ' + '$Per$' + ' ' + '$Step$' + ' ' + '$For$' + ' ' + str(Steps*ds / B[0].shape[0]) + ' ' + '$Passes$' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Einterp$' + ' ' + '$Total$' + ' ' + '$=$' + ' ' + str(interp), fontsize=18)
+        ax4.set_title('$E$' + ' ' + '$Interpolated$' + ' ' + '$Per$' + ' ' + '$Step$' + ' ' + '$For$' + ' ' + str(float(Steps)*ds / B[0].shape[0]) + ' ' + '$Passes$' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Einterp$' + ' ' + '$Total$' + ' ' + '$=$' + ' ' + str(interp), fontsize=18)
 
     while True:
         ans = raw_input('\n' + 'Create 3D and Puncture Plots? Y or N \n')
@@ -405,7 +405,7 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
             fig2 = plt.figure(2)
             fig2.set_size_inches(10, 10, forward = True)
             fig2.patch.set_facecolor('lightgrey')
-            fig2.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$3D$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(Steps*ds/B[0].shape[0]), fontsize = 20, y = .96)
+            fig2.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$3D$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 20, y = .96)
             # making 3D plot
             ax4 = fig2.add_subplot(111, projection = '3d')
             # 500, 180, 250 is inside reconn zone
@@ -444,7 +444,7 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
             
             fig3 = plt.figure(3)
             fig3.set_size_inches(5, 10, forward = True)
-            fig3.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(Steps*ds/B[0].shape[0]), fontsize = 18, y = .99)
+            fig3.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 18, y = .99)
             plt.subplots_adjust(left = .1, bottom = .06, right = .9, top = .86, wspace = None, hspace = .45)
             fig3.patch.set_facecolor('lightgrey')
             
@@ -1113,11 +1113,11 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
 
 # 2D TESTS
 
-d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
-Bx = d['by']
-By = d['bx']
+#d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
+#Bx = d['by']
+#By = d['bx']
 
-TraceField([Bx, By], [2000, 2000])
+#TraceField([Bx, By], [2000, 2000])
 
 # 3D TESTS
 print('Loading')
@@ -1125,22 +1125,22 @@ BX =  np.load('/scratch-fast/asym030/bx.npy')
 BY =  np.load('/scratch-fast/asym030/by.npy')
 BZ =  np.load('/scratch-fast/asym030/bz.npy')
 
-EX =  np.load('/scratch-fast/asym030/ex.npy')
-EY =  np.load('/scratch-fast/asym030/ey.npy')
-EZ =  np.load('/scratch-fast/asym030/ez.npy')
+#EX =  np.load('/scratch-fast/asym030/ex.npy')
+#EY =  np.load('/scratch-fast/asym030/ey.npy')
+#EZ =  np.load('/scratch-fast/asym030/ez.npy')
 print('Loaded')
 
-#SepY0 = np.load('SepY5.npy')[0]
-#TraceField([BX, BY, BZ], [1000, 400, 500], .5, 100)
+SepY0 = np.load('LowerSepY.npy')[0]
+TraceField([BX, BY, BZ], [0, SepY0, 0], 2, 1.5)
 #TraceField([BX, BY, BZ], [500, 200, 500], .5, 100, ['TraceX6.npy', 'TraceY6.npy', 'TraceZ6.npy'])
-TraceField([BX, BY, BZ, EX, EY, EZ], [1000, 400, 500], .5, 100)
+#TraceField([BX, BY, BZ, EX, EY, EZ], [1000, 400, 500], .5, 100)
 
-SeparatorSlice('UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
+#SeparatorSlice('UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
 #SeparatorSlice('UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 2048, 1024, 1024)
 
 #SeparatorLoader('UpperSepX.npy','UpperSepY.npy','UpperSepZ.npy', 2048, 1024, 1024)
 # CAREFUL don't run these one after another plots will mix
-SeparatorLoader('UpperSepX.npy','UpperSepY.npy','UpperSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
+#SeparatorLoader('UpperSepX.npy','UpperSepY.npy','UpperSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
 
 # 318 for Upper
 # 150 for Lower
