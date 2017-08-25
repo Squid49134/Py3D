@@ -25,10 +25,10 @@ _lib = ctypes.cdll.LoadLibrary(pathlib)
 #-----------------------------------------------------------------------------#
 
 # TRACER
-def TraceField(B, Start, ds = .1, passes = 10):
+def TraceField(B, Start, ds = None, passes = None, Saves = None):
     
     try:
-        if (len(B) == 2 or len(B) == 3):
+        if ((len(B) == 2) or (len(B) == 3) or (len(B) == 6)):
             0
         else:
             print('invalid B')
@@ -38,9 +38,23 @@ def TraceField(B, Start, ds = .1, passes = 10):
         return 0
         
     # 3D
-    if len(B) == 3:
+    if ((len(B) == 3) or (len(B) == 6)):
         # checks validity of provided args
         try:
+            try:
+                Saves[0] == 'String'
+                Saves[1] == 'String'
+                Saves[2] == 'String'
+            except:
+                if (Saves == None):
+                    1
+                else:
+                    print('invalid saves')
+                    return 0
+            if (len(B) == 6):
+                B[3][0,0,0] * B[4][0,0,0] * B[5][0,0,0]
+                assert(B[3].shape == B[4].shape == B[5].shape == B[0].shape)
+            B[0][0,0,0] * B[1][0,0,0] * B[2][0,0,0]
             assert(B[0].shape == B[1].shape == B[2].shape)
             assert(0 <= Start[0] <= B[0].shape[0] - 1)
             assert(0 <= Start[1] <= B[0].shape[1] - 1)
@@ -65,9 +79,12 @@ def TraceField(B, Start, ds = .1, passes = 10):
         Xsize = B[0].shape[0]
         Ysize = B[0].shape[1]
         Zsize = B[0].shape[2]
-            
-        RK4_3D(Start[0], Start[1], Start[2], B[0], B[1], B[2], Xsize,
-        Ysize, Zsize, ds, int(Steps))
+        
+        try:
+            Saves[0]
+            RK4_3D(Start[0], Start[1], Start[2], B, Xsize, Ysize, Zsize, ds, int(Steps), Saves)
+        except:
+            RK4_3D(Start[0], Start[1], Start[2], B, Xsize, Ysize, Zsize, ds, int(Steps))
         
         while True:
             print('')
@@ -81,6 +98,9 @@ def TraceField(B, Start, ds = .1, passes = 10):
                         Start[2] = abs(float(raw_input('Enter Z value of starting position: \n')))
                         ds =  abs(float(raw_input('Enter ds value: \n')))
                         passes = abs(float(raw_input('Enter number of passes: \n')))
+                        assert(0 <= Start[0] <= B[0].shape[0] - 1)
+                        assert(0 <= Start[1] <= B[0].shape[1] - 1)
+                        assert(0 <= Start[2] <= B[0].shape[2] - 1)
                         break
                     except:
                         print('invalid input try again \n')
@@ -99,6 +119,7 @@ def TraceField(B, Start, ds = .1, passes = 10):
         ds2D = .1
         # checks validity of provided args
         try:
+            B[0][0,0] * B[1][0,0]
             assert(B[0].shape == B[1].shape)
             assert(0 <= Start[0] <= B[0].shape[0] - 1)
             assert(0 <= Start[1] <= B[0].shape[1] - 1)
@@ -109,9 +130,9 @@ def TraceField(B, Start, ds = .1, passes = 10):
         
         # calculates max number of differential steps along line
         if B[0].shape[0] >= B[0].shape[1]:
-            Steps = 10 * (B[0].shape[0] / ds)
+            Steps = 10 * (B[0].shape[0] / ds2D)
         else:
-            Steps = 10 * (B[0].shape[1] / ds)
+            Steps = 10 * (B[0].shape[1] / ds2D)
         
         # sizes of data files are imoprtant to boundary conditions in 
         # the tracing routines
@@ -145,6 +166,7 @@ def TraceField(B, Start, ds = .1, passes = 10):
                 print('invalid input try again \n')
                 continue
             
+            
 def RK4_2D(Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
     func          = _lib.FieldLine2D
     func.restype  = int
@@ -177,6 +199,7 @@ def RK4_2D(Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
     # the figure
     fig1 = plt.figure(1)
     fig1.set_size_inches(10,10, forward = True)
+    fig1.patch.set_facecolor('lightgrey')
     ax = fig1.add_subplot(111)
     ax.set_ylim([0, Ysize-1])
     ax.set_xlim([0, Xsize-1])
@@ -195,9 +218,9 @@ def RK4_2D(Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
     
     plt.show()                
         
-def RK4_3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
+def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None):
     func          = _lib.FieldLine3D
-    func.restype  = None
+    func.restype  = int
     func.argtypes = [ndpointer(ctypes.c_double), 
                      ndpointer(ctypes.c_double), 
                      ndpointer(ctypes.c_double), 
@@ -211,7 +234,11 @@ def RK4_3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
                      ctypes.c_uint, 
                      ctypes.c_uint, 
                      ctypes.c_float, 
-                     ctypes.c_uint]
+                     ctypes.c_uint,
+                     ndpointer(ctypes.c_double), 
+                     ndpointer(ctypes.c_double), 
+                     ndpointer(ctypes.c_double),
+                     ndpointer(ctypes.c_double)]
                      
     print('\n' + 'Configuring B...')    
     Line_X = np.zeros(Steps)
@@ -222,19 +249,47 @@ def RK4_3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
     By = np.zeros(Xsize * Ysize * Zsize)
     Bz = np.zeros(Xsize * Ysize * Zsize)
 
-    Bx = B1.reshape(Xsize*Ysize*Zsize,order='F')
-    By = B2.reshape(Xsize*Ysize*Zsize,order='F')
-    Bz = B3.reshape(Xsize*Ysize*Zsize,order='F')
+    Bx = B[0].reshape(Xsize*Ysize*Zsize,order='F')
+    By = B[1].reshape(Xsize*Ysize*Zsize,order='F')
+    Bz = B[2].reshape(Xsize*Ysize*Zsize,order='F')
     
+    Ex = np.zeros(3)
+    Ey = np.zeros(3)
+    Ez = np.zeros(3)
+    EI = np.zeros(3)
+    
+    if (len(B) == 6):
+        Ex = np.zeros(Xsize * Ysize * Zsize)
+        Ey = np.zeros(Xsize * Ysize * Zsize)
+        Ez = np.zeros(Xsize * Ysize * Zsize)
+        EI = np.zeros(Steps)
+
+        Ex = B[3].reshape(Xsize*Ysize*Zsize,order='F')
+        Ey = B[4].reshape(Xsize*Ysize*Zsize,order='F')
+        Ez = B[5].reshape(Xsize*Ysize*Zsize,order='F')
+
     print('\n' + 'Tracing...')
-    func(Line_X, Line_Y, Line_Z, Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps)
-    print('Done Tracing, preparing projection plots...')    
+    interp = func(Line_X, Line_Y, Line_Z, Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps, Ex, Ey, Ez, EI)
+    print('Done Tracing.')
+    
+    try:
+        Saves[0]
+        print('Saving...')
+        np.save(Saves[0], Line_X)
+        np.save(Saves[1], Line_Y)
+        np.save(Saves[2], Line_Z)
+        print('Saved.')
+    except:
+        1
+        
+    
+    print('\n' + 'Preparing Projection Plots...')    
     
     # the figure
     fig1 = plt.figure(1)
     fig1.set_size_inches(5, 10, forward = True)
     plt.subplots_adjust(left = .1, bottom = .06, right = .9, top = .86, wspace = None, hspace = .45)
-    fig1.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')', fontsize = 20)
+    fig1.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(Steps*ds/B[0].shape[0]), fontsize = 18, y = .99)
     fig1.patch.set_facecolor('lightgrey')
     # making 3D plot
     
@@ -277,6 +332,22 @@ def RK4_3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
     ax3.yaxis.set_label_position('right')
     ax3.yaxis.labelpad = 10
     
+    if (len(B) == 6):
+        fig4 = plt.figure(4)
+        Xvals = np.linspace(0, Steps, Steps)
+        fig4.set_size_inches(30,7, forward = True)
+        fig4.patch.set_facecolor('lightgrey')
+        plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
+        # making 3D plot
+        ax4 = fig4.add_subplot(111)
+        # 500, 180, 250 is inside reconn zone
+        ax4.plot(Xvals, EI, linewidth = .5, color = 'g')
+        ax4.set_ylabel('Y', rotation = 0)
+        ax4.set_xlabel('X')
+        ax4.yaxis.set_label_position('right')
+        ax4.yaxis.labelpad = 10
+        ax4.set_title('$E$' + ' ' + '$Interpolated$' + ' ' + '$Per$' + ' ' + '$Step$' + ' ' + '$For$' + ' ' + str(Steps*ds / B[0].shape[0]) + ' ' + '$Passes$' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Einterp$' + ' ' + '$Total$' + ' ' + '$=$' + ' ' + str(interp), fontsize=18)
+
     while True:
         ans = raw_input('\n' + 'Create 3D and Puncture Plots? Y or N \n')
         if ((ans == 'Y') or (ans == 'y')):
@@ -292,12 +363,12 @@ def RK4_3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
                 Bm4 = np.zeros(4)
                 Bm5 = np.zeros(4)
                 
-                Bm0 = np.sqrt(B1[0,:,:]**2 + B2[0,:,:]**2 + B3[0,:,:]**2)
-                Bm1 = np.sqrt(B1[:,0,:]**2 + B2[:,0,:]**2 + B3[:,0,:]**2)
-                Bm2 = np.sqrt(B1[:,:,0]**2 + B2[:,:,0]**2 + B3[:,:,0]**2)
-                Bm3 = np.sqrt(B1[int(Xinit),:,:]**2 + B2[int(Xinit),:,:]**2 + B3[int(Xinit),:,:]**2)
-                Bm4 = np.sqrt(B1[:,int(Yinit),:]**2 + B2[:,int(Yinit),:]**2 + B3[:,int(Yinit),:]**2)
-                Bm5 = np.sqrt(B1[:,:,int(Zinit)]**2 + B2[:,:,int(Zinit)]**2 + B3[:,:,int(Zinit)]**2)
+                Bm0 = np.sqrt(B[0][0,:,:]**2 + B[1][0,:,:]**2 + B[2][0,:,:]**2)
+                Bm1 = np.sqrt(B[0][:,0,:]**2 + B[1][:,0,:]**2 + B[2][:,0,:]**2)
+                Bm2 = np.sqrt(B[0][:,:,0]**2 + B[1][:,:,0]**2 + B[2][:,:,0]**2)
+                Bm3 = np.sqrt(B[0][int(Xinit),:,:]**2 + B[1][int(Xinit),:,:]**2 + B[2][int(Xinit),:,:]**2)
+                Bm4 = np.sqrt(B[0][:,int(Yinit),:]**2 + B[1][:,int(Yinit),:]**2 + B[2][:,int(Yinit),:]**2)
+                Bm5 = np.sqrt(B[0][:,:,int(Zinit)]**2 + B[1][:,:,int(Zinit)]**2 + B[2][:,:,int(Zinit)]**2)
             
             MIN = Bm2.min()
             MAX = Bm2.max()
@@ -334,7 +405,7 @@ def RK4_3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
             fig2 = plt.figure(2)
             fig2.set_size_inches(10, 10, forward = True)
             fig2.patch.set_facecolor('lightgrey')
-            fig2.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$3D$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')', fontsize = 20, y = .95)
+            fig2.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$3D$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(Steps*ds/B[0].shape[0]), fontsize = 20, y = .96)
             # making 3D plot
             ax4 = fig2.add_subplot(111, projection = '3d')
             # 500, 180, 250 is inside reconn zone
@@ -373,8 +444,8 @@ def RK4_3D(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
             
             fig3 = plt.figure(3)
             fig3.set_size_inches(5, 10, forward = True)
-            fig3.suptitle('$Puncture$' + ' ' + '$Plots$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$', fontsize = 20)
-            plt.subplots_adjust(left = .1, bottom = .1, right = .9, top = .9, wspace = None, hspace = .4)
+            fig3.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(Steps*ds/B[0].shape[0]), fontsize = 18, y = .99)
+            plt.subplots_adjust(left = .1, bottom = .06, right = .9, top = .86, wspace = None, hspace = .45)
             fig3.patch.set_facecolor('lightgrey')
             
             ax5 = fig3.add_subplot(311)
@@ -453,33 +524,41 @@ def Punct(PunctAxisData, Val, ds, Steps, OtherAxisData1, OtherAxisData2):
     Points2 = Points2[:Total]
     
     return Points1, Points2
+    
 #-----------------------------------------------------------------------------#
 # SEPARATOR
 
-def MapSeparator(B, Ystart, ds = 2, passes = 1.5):
+def MapSeparator(Saves, B, Ystart, UPorLOW, N = 1):
+    ds = 3
+    passes = 1.5
     try:
+        Saves[0] == 'String'
+        Saves[1] == 'String'
+        Saves[2] == 'String'
+        B[0][0,0,0] * B[1][0,0,0] * B[2][0,0,0]
         assert(B[0].shape == B[1].shape == B[2].shape)
-        assert(float(ds))
-        assert(float(passes))
+        assert(int(N))
         assert(float(Ystart))
+        assert(1 <= N < (B[0].shape[0]/30))
+        assert(0 < Ystart < B[0].shape[1])
+        assert((UPorLOW == 'Upper') or (UPorLOW == 'Lower'))
+        
     except:
         print('invalid arguments, B components must be equal sized arrays')
         return 0
-    if ((ds != 2) or (passes != 1.5)):
-        print('Warning, altering ds or the passes may prevent program from accurately mapping separator.')
-    N = 1
     SeparatorX = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
     SeparatorY = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
     SeparatorZ = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
-    SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart)
+    SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart, UPorLOW)
     
     print('Saving...')
-    np.save('SepX5dx2', SeparatorX)
-    np.save('SepY5dx2', SeparatorY)
-    np.save('SepZ5dx2', SeparatorZ)
+    np.save(Saves[0], SeparatorX)
+    np.save(Saves[1], SeparatorY)
+    np.save(Saves[2], SeparatorZ)
+    print('Saved.')
 
 
-def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart):
+def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart, UPorLOWstr):
     func          = _lib.SepPoints
     func.restype  = ctypes.c_double
     func.argtypes = [ctypes.c_uint, 
@@ -494,8 +573,13 @@ def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart):
                      ctypes.c_uint,
                      ndpointer(ctypes.c_double), 
                      ndpointer(ctypes.c_double), 
-                     ndpointer(ctypes.c_double),]
+                     ndpointer(ctypes.c_double),
+                     ctypes.c_uint]
      
+    if (UPorLOWstr == 'Upper'):
+        UPorLOWint = 1
+    else:
+        UPorLOWint = 0
     Steps = passes * (B[0].shape[0] / ds)
     Xsize = B[0].shape[0]
     Ysize = B[0].shape[1]
@@ -512,37 +596,41 @@ def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart):
     Start[0] = 0
     Start[1] = Ystart
     Start[2] = 0
-    Yval = func(N, Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ)
+    Yval = func(N, Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ, UPorLOWint)
     SeparatorX[0] = 0
     SeparatorY[0] = Yval
     SeparatorZ[0] = 0
 
     for i in range(0, Xsize/N):
-        print(str(i+1) + '/' + str(Xsize))
+        print(str(i+1) + '/' + str(Xsize/N))
         for j in range(0, Zsize/N):
             if ((i == 0) and (j == 0)):
                 continue
             Start[0] = (N * i)
             Start[1] = SeparatorY[(j + (Zsize/N)*(i))-1]
             Start[2] = (N * j)
-            Yval = func(N, Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ)
+            Yval = func(N, Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ, UPorLOWint)
             SeparatorX[j + (Zsize/N)*(i)] = N * i
             SeparatorY[j + (Zsize/N)*(i)] = Yval
             SeparatorZ[j + (Zsize/N)*(i)] = N * j
 
 
-def SeparatorSlice(SepDataPathX, SepDataPathY, SepDataPathZ, SizeX, SizeY, SizeZ, Bx = None, By = None, Bz = None):
+def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
     try:
+        Bx = B[0]
+        By = B[1]
+        Bz = B[2]
+        Bx[0,0,0] * By[0,0,0] * Bz[0,0,0]
         assert(Bx.shape == By.shape == Bz.shape)
-        assert(int(SizeX))
-        assert(int(SizeY))
-        assert(int(SizeZ))
+        assert(int(Xsize))
+        assert(int(Ysize))
+        assert(int(Zsize))
     except:
         try:
-            assert(Bx == None)
-            assert(int(SizeX))
-            assert(int(SizeY))
-            assert(int(SizeZ))
+            assert(B == None)
+            assert(int(Xsize))
+            assert(int(Ysize))
+            assert(int(Zsize))
         except:
             print('invalid arguments')
             return 0
@@ -555,34 +643,36 @@ def SeparatorSlice(SepDataPathX, SepDataPathY, SepDataPathZ, SizeX, SizeY, SizeZ
                 while True:
                     try:
                         X = int(raw_input('Enter X value for slice: \n'))
-                        assert(0 <= X < SizeX)
+                        assert(0 <= X < Xsize)
                         break;
                     except:
                         print('invalid X try again. \n')
                         continue
                 
                 print('\n' + 'Loading')
-                SepY =  np.load(SepDataPathY)
-                SepZ =  np.load(SepDataPathZ)
+                SepX = np.load(PathSepX)
+                SepY = np.load(PathSepY)
+                SepZ = np.load(PathSepZ)
                 print('Loaded' + '\n')
                 print('Slicing...')
                 
-                SepYSlice = np.zeros(SizeZ)        
-                SepZSlice = np.zeros(SizeZ)             
+                SepYSlice = np.zeros(Zsize)        
+                SepZSlice = np.zeros(Zsize)             
                 
-                First = SizeZ*(X)
-                SepYSlice = SepY[First:(First + SizeZ - 1)]
-                SepZSlice = SepZ[First:(First + SizeZ - 1)]
+                First = Zsize*(X)
+                SepYSlice = SepY[First:(First + Zsize - 1)]
+                SepZSlice = SepZ[First:(First + Zsize - 1)]
                 
                 print('\n' + 'Generating Figures...')
                 
                 fig = plt.figure(1)
                 fig.set_size_inches(30,6, forward = True)
+                fig.patch.set_facecolor('lightgrey')
                 plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
                 # making 3D plot
                 ax = fig.add_subplot(111)
                 # 500, 180, 250 is inside reconn zone
-                ax.plot(SepZSlice, SepYSlice, linewidth = .5, color = 'b')
+                ax.plot(SepZSlice, SepYSlice, linewidth = .5, color = 'g')
                 ax.set_ylabel('Y', rotation = 0)
                 ax.set_xlabel('Z')
                 ax.yaxis.set_label_position('right')
@@ -594,6 +684,7 @@ def SeparatorSlice(SepDataPathX, SepDataPathY, SepDataPathZ, SizeX, SizeY, SizeZ
                     
                     fig2 = plt.figure(2)
                     fig2.set_size_inches(30,6, forward = True)
+                    fig2.patch.set_facecolor('lightgrey')
                     plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
                     # making 3D plot
                     ax2 = fig2.add_subplot(111)
@@ -606,8 +697,8 @@ def SeparatorSlice(SepDataPathX, SepDataPathY, SepDataPathZ, SizeX, SizeY, SizeZ
                     ax2.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Puncture$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(X), fontsize=20)
                     
                     Steps = 1000*Bx.shape[0]
-                    Upper = RK4_3D_SepSlice(0, SepY[0] + .3, 0, Bx, By, Bz, SizeX, SizeY, SizeZ, .1, Steps)
-                    Lower = RK4_3D_SepSlice(0, SepY[0] - .3, 0, Bx, By, Bz, SizeX, SizeY, SizeZ, .1, Steps)
+                    Upper = RK4_3D_SepSlice(0, SepY[0] + .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
+                    Lower = RK4_3D_SepSlice(0, SepY[0] - .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
                     UpperPunct = Punct(Upper[0], X, .1, Steps, Upper[2], Upper[1])
                     LowerPunct = Punct(Lower[0], X, .1, Steps, Lower[2], Lower[1])
                     ax2.scatter(UpperPunct[0], UpperPunct[1], s = 3, c = 'r', label = 'Line Started Above')
@@ -616,6 +707,9 @@ def SeparatorSlice(SepDataPathX, SepDataPathY, SepDataPathZ, SizeX, SizeY, SizeZ
                                    
                 except:
                     1
+                
+                print('\n' + 'Finding XLine...')
+                XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize)                
                 
                 print('\n' + 'Plotting...')
                 plt.show()
@@ -637,34 +731,36 @@ def SeparatorSlice(SepDataPathX, SepDataPathY, SepDataPathZ, SizeX, SizeY, SizeZ
                 while True:
                     try:
                         Z = int(raw_input('Enter Z value for slice: \n'))
-                        assert(0 <= Z < SizeZ)
+                        assert(0 <= Z < Zsize)
                         break
                     except:
                         print('invalid Z try again. \n')
                         continue
                 
                 print('\n' + 'Loading')
-                SepX =  np.load(SepDataPathX)
-                SepY =  np.load(SepDataPathY)
+                SepX = np.load(PathSepX)
+                SepY = np.load(PathSepY)
+                SepZ = np.load(PathSepZ)
                 print('Loaded' + '\n')
                 print('Slicing...')
                 
-                SepYSlice = np.zeros(SizeX)        
-                SepXSlice = np.zeros(SizeX)        
+                SepYSlice = np.zeros(Xsize)        
+                SepXSlice = np.zeros(Xsize)        
                 
-                for i in range(0, SizeX):
-                    SepYSlice[i] = SepY[SizeZ*i + Z]
-                    SepXSlice[i] = SepX[SizeZ*i + Z]
+                for i in range(0, Xsize):
+                    SepYSlice[i] = SepY[Zsize*i + Z]
+                    SepXSlice[i] = SepX[Zsize*i + Z]
                 
                 print('\n' + 'Generating Figures...')            
                 
                 fig = plt.figure(1)
                 fig.set_size_inches(30,6, forward = True)
+                fig.patch.set_facecolor('lightgrey')
                 plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
                 # making 3D plot
                 ax = fig.add_subplot(111)
                 # 500, 180, 250 is inside reconn zone
-                ax.plot(SepXSlice, SepYSlice, linewidth = .5, color = 'b')
+                ax.plot(SepXSlice, SepYSlice, linewidth = .5, color = 'g')
                 ax.set_ylabel('Y', rotation = 0)
                 ax.set_xlabel('X')
                 ax.yaxis.set_label_position('right')
@@ -676,6 +772,7 @@ def SeparatorSlice(SepDataPathX, SepDataPathY, SepDataPathZ, SizeX, SizeY, SizeZ
                     
                     fig2 = plt.figure(2)
                     fig2.set_size_inches(30,6, forward = True)
+                    fig2.patch.set_facecolor('lightgrey')
                     plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
                     # making 3D plot
                     ax2 = fig2.add_subplot(111)
@@ -688,8 +785,8 @@ def SeparatorSlice(SepDataPathX, SepDataPathY, SepDataPathZ, SizeX, SizeY, SizeZ
                     ax2.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Puncture$' + ' ' + '$Z$' + ' ' + '$=$' + ' ' + str(Z), fontsize=20)
                     
                     Steps = 1000*Bx.shape[0]
-                    Upper = RK4_3D_SepSlice(0, SepY[0] + .3, 0, Bx, By, Bz, SizeX, SizeY, SizeZ, .1, Steps)
-                    Lower = RK4_3D_SepSlice(0, SepY[0] - .3, 0, Bx, By, Bz, SizeX, SizeY, SizeZ, .1, Steps)
+                    Upper = RK4_3D_SepSlice(0, SepY[0] + .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
+                    Lower = RK4_3D_SepSlice(0, SepY[0] - .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
                     UpperPunct = Punct(Upper[2], Z, .1, Steps, Upper[0], Upper[1])
                     LowerPunct = Punct(Lower[2], Z, .1, Steps, Lower[0], Lower[1])
                     ax2.scatter(UpperPunct[0], UpperPunct[1], s = 3, c = 'r', label = 'Line Started Above')
@@ -698,7 +795,10 @@ def SeparatorSlice(SepDataPathX, SepDataPathY, SepDataPathZ, SizeX, SizeY, SizeZ
                     
                 except:
                     1
-                    
+                
+                print('\n' + 'Finding XLine...')
+                XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize)
+                
                 print('\n' + 'Plotting...')
                 plt.show()            
                 
@@ -734,7 +834,11 @@ def RK4_3D_SepSlice(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, St
                      ctypes.c_uint, 
                      ctypes.c_uint, 
                      ctypes.c_float, 
-                     ctypes.c_uint]
+                     ctypes.c_uint,
+                     ndpointer(ctypes.c_double), 
+                     ndpointer(ctypes.c_double), 
+                     ndpointer(ctypes.c_double),
+                     ndpointer(ctypes.c_double)]
                      
     Line_X = np.zeros(Steps)
     Line_Y = np.zeros(Steps)
@@ -748,22 +852,106 @@ def RK4_3D_SepSlice(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, St
     By = B2.reshape(Xsize*Ysize*Zsize,order='F')
     Bz = B3.reshape(Xsize*Ysize*Zsize,order='F')
     
+    Ex = np.zeros(3)
+    Ey = np.zeros(3)
+    Ez = np.zeros(3)
+    EI = np.zeros(3)
+    
     print('\n' + 'Tracing...')
-    func(Line_X, Line_Y, Line_Z, Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps)
+    func(Line_X, Line_Y, Line_Z, Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps, Ex, Ey, Ez, EI)
     print('Done Tracing')
     
     return Line_X, Line_Y, Line_Z
     
+def XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize):
+    XLineX = np.zeros(Zsize)
+    XLineY = np.zeros(Zsize)
+    XLineZ = np.zeros(Zsize)
     
-def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B1 = None, B2 = None, B3 = None):
+    Linepos = ' '
+    while True:
+        num = 40
+        if SepY[0] > SepY[Zsize*(int(Xsize/num))]:
+            Linepos = 'Lower'
+            break
+        elif SepY[0] < SepY[Zsize*(int(Xsize/num))]:
+            Linepos = 'Upper'
+            break
+        else:
+            if num < 5:
+                print('Coudl not find Xline')
+                return
+            num = num/2
+    
+    if (Linepos == 'Lower'):
+        for k in range(0, Zsize):
+            MinY = Ysize + 1
+            MinX = 0
+            MinZ = 0
+            for i in range(0, Xsize):
+                if SepY[(Zsize*i) + k] < MinY:
+                    MinY = SepY[(Zsize*i) + k]
+                    MinX = i
+                    MinZ = k
+            
+            XLineX[k] = MinX
+            XLineY[k] = MinY
+            XLineZ[k] = MinZ
+    else:
+        for k in range(0, Zsize):
+            MaxY = -1
+            MaxX = 0
+            MaxZ = 0
+            for i in range(0, Xsize):
+                if SepY[(Zsize*i) + k] > MaxY:
+                    MaxY = SepY[(Zsize*i) + k]
+                    MaxX = i
+                    MaxZ = k
+            
+            XLineX[k] = MaxX
+            XLineY[k] = MaxY
+            XLineZ[k] = MaxZ
+                
+    fig3 = plt.figure(3)
+    fig3.set_size_inches(12,12, forward = True)
+    fig3.patch.set_facecolor('lightgrey')
+    fig3.suptitle('$XLine$' + ' ' + '$Projections$', fontsize = 20)
+    plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
+    # making 3D plot
+    ax3 = fig3.add_subplot(211)
+    # 500, 180, 250 is inside reconn zone
+    ax3.plot(XLineZ, XLineY, linewidth = .5, color = 'b', label = 'Separator Sheet')
+    ax3.set_ylabel('Y', rotation = 0)
+    ax3.set_xlabel('Z')
+    ax3.yaxis.set_label_position('right')
+    ax3.yaxis.labelpad = 10
+    ax3.set_title('$XLine$' + ' ' + '$Viewed$' + ' ' + '$Down$' + ' ' + '$X$' + ' ' + '$Axis$')
+    
+    ax4 = fig3.add_subplot(212)
+    # 500, 180, 250 is inside reconn zone
+    ax4.plot(XLineZ, XLineX, linewidth = .5, color = 'b', label = 'Separator Sheet')
+    ax4.set_ylabel('X', rotation = 0)
+    ax4.set_xlabel('Z')
+    ax4.yaxis.set_label_position('right')
+    ax4.yaxis.labelpad = 10
+    ax4.set_title('$XLine$' + ' ' + '$Viewed$' + ' ' + '$Down$' + ' ' + '$Y$' + ' ' + '$Axis$')
+    
+
+        
+
+def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
     try:
-        assert(B1.shape == B2.shape == B3.shape)
+        Bx = B[0]
+        By = B[1]
+        Bz = B[2]
+        Bx[0,0,0] * By[0,0,0] * Bz[0,0,0]
+        assert(Bx.shape == By.shape == Bz.shape)
         assert(int(Xsize))
         assert(int(Ysize))
         assert(int(Zsize))
     except:
         try:
-            assert(B1 == None)
+            assert(B == None)
             assert(int(Xsize))
             assert(int(Ysize))
             assert(int(Zsize))
@@ -825,17 +1013,17 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B1 = None
     ax3.yaxis.labelpad = 10
     
     try:
-        B3[0,0,0]
+        Bz[0,0,0]
         
         print('\n'+'Calculating |B|...')
         Bm0 = np.zeros(4)
         Bm1 = np.zeros(4)
         Bm2 = np.zeros(4)
         Bm3 = np.zeros(4)
-        Bm0 = np.sqrt(B1[0,:,:]**2 + B2[0,:,:]**2 + B3[0,:,:]**2)
-        Bm1 = np.sqrt(B1[:,0,:]**2 + B2[:,0,:]**2 + B3[:,0,:]**2)
-        Bm2 = np.sqrt(B1[:,:,0]**2 + B2[:,:,0]**2 + B3[:,:,0]**2)
-        Bm3 = np.sqrt(B1[:,:,int(Zsize/2)]**2 + B2[:,:,int(Zsize/2)]**2 + B3[:,:,int(Zsize/2)]**2)
+        Bm0 = np.sqrt(Bx[0,:,:]**2 + By[0,:,:]**2 + Bz[0,:,:]**2)
+        Bm1 = np.sqrt(Bx[:,0,:]**2 + By[:,0,:]**2 + Bz[:,0,:]**2)
+        Bm2 = np.sqrt(Bx[:,:,0]**2 + By[:,:,0]**2 + Bz[:,:,0]**2)
+        Bm3 = np.sqrt(Bx[:,:,int(Zsize/2)]**2 + By[:,:,int(Zsize/2)]**2 + Bz[:,:,int(Zsize/2)]**2)
 
         MIN = Bm2.min()
         MAX = Bm2.max()
@@ -928,24 +1116,37 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B1 = None
 #d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
 #Bx = d['by']
 #By = d['bx']
-#print('Loaded')
+
 #TraceField([Bx, By], [2000, 2000])
-#TraceField([Bx, By], [4596, 4596])
 
 # 3D TESTS
 print('Loading')
 BX =  np.load('/scratch-fast/asym030/bx.npy')
 BY =  np.load('/scratch-fast/asym030/by.npy')
 BZ =  np.load('/scratch-fast/asym030/bz.npy')
-print('Loaded')
-#TraceField([BX, BY, BZ], [1200, 500, 500], .01, 100)
-#TraceField([BX, BY, BZ], [500, 200, 500], 20, 100)
 
-#SeparatorSlice('SepX4dx2.npy', 'SepY4dx2.npy', 'SepZ4dx2.npy', 2048, 1024, 1024)
-SeparatorSlice('SepX4dx2.npy', 'SepY4dx2.npy', 'SepZ4dx2.npy', 2048, 1024, 1024, BX, BY, BZ)
+#EX =  np.load('/scratch-fast/asym030/ex.npy')
+#EY =  np.load('/scratch-fast/asym030/ey.npy')
+#EZ =  np.load('/scratch-fast/asym030/ez.npy')
+#print('Loaded')
 
-#SeparatorLoader('SepX4dx2.npy','SepY4dx2.npy','SepZ4dx2.npy', 2048, 1024, 1024)
+#SepY0 = np.load('SepY5.npy')[0]
+#TraceField([BX, BY, BZ], [1000, 400, 500], .5, 100)
+#TraceField([BX, BY, BZ], [500, 200, 500], .5, 100, ['TraceX6.npy', 'TraceY6.npy', 'TraceZ6.npy'])
+#TraceField([BX, BY, BZ, EX, EY, EZ], [1000, 400, 500], .5, 100)
 
-#SeparatorLoader('SepX4dx2.npy','SepY4dx2.npy','SepZ4dx2.npy', 2048, 1024, 1024, BX, BY, BZ)
+#SeparatorSlice('SepX4dx2.npy', 'SepY4dx2.npy', 'SepZ4dx2.npy', 2048, 1024, 1024, [BX, BY, BZ])
+SeparatorSlice('SepX5.npy', 'SepY5.npy', 'SepZ5.npy', 2048, 1024, 1024)
 
-#MapSeparator([BX, BY, BZ], 318)
+#SeparatorLoader('SepX7dx3.npy','SepY7dx3.npy','SepZ7dx3.npy', 2048, 1024, 1024, [BX, BY, BZ])
+# CAREFUL don't run these one after another plots will mix
+SeparatorLoader('SepX5.npy','SepY5.npy','SepZ5.npy', 2048, 1024, 1024)
+
+# 318 for Upper
+# 150 for Lower
+#MapSeparator(['SepX8.npy', 'SepY8.npy', 'SepZ8.npy'], [BX, BY, BZ], 318, 'Upper', 1)
+
+
+# TODO
+# add ds and passes to images
+
