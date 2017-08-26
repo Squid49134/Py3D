@@ -1,0 +1,81 @@
+
+3D Field Tracer Documenation
+----------------------------
+
+Python Wrapper: TracerWrapper.py
+Shared C Library: TracerFunctions.c
+
+compiling shared library:
+    gcc -o TracerFunctions.so -shared -fPIC TracerFunctions.c
+
+User Methods:
+*all methods are fairly well error proof so the user cannot cause segmentation faults
+*3D plots use colormeshs with low resolution to save time, if desired there
+    are options in the code called cstride and rstride which both = 10 and can
+    be lowered to increase this resolution
+
+    TraceField(B, Start, ds, passes, Saves = None)
+        * recursive allowing user to quickly trace multiple points
+        - B is a length 2 or 3 vector of the magnetic field data
+        - Start is a length 2 or 3 vector of the starting location
+        - ds is the differential step, can be any size
+        - passes is a rough estimate of the number of passes through the simulation
+            can be any size
+        - Saves is an optional vector of string path names to save the X, Y and Z data
+        OPTIONS - 
+            TraceField([Bx, By], [X, Y]):
+                Traces and plots a 2D line over a colormesh of |B|, ds and passes
+                are not adjustable
+            TraceField([Bx, By, Bz], [X, Y, Z], .1, 100):
+                Traces and Plots 3D line projections, offers the user an option to plot
+                puncture plots and a 3D plots over colormeshs of |B|, this takes extra time
+            TraceField([Bx, By, Bz], [X, Y, Z], .1, 100, ['TraceX.npy', 'TraceY.npy', 'TraceZ.npy']):
+                Will save the 3D trace data
+            TraceField([Bx, By, Bz, Ex, Ey, Ez], [X, Y, Z], .1, 100):
+                Will also total E interpolated along the path of the trace, print the total
+                and plot the total per step
+
+    MapSeparator(Saves, B, Ystart, UPorLOW, N = 1):
+        - Saves is a vector of string path names to save the X, Y and Z data
+        - B is a length 3 vector of the magnetic field data
+        - Ystart is a point close to the separator at point [0, Ystart, 0] which
+            provides a starting point for the mapping.  This is easy to find 
+            using the TraceField method and trial and error.
+        - UPorLow is a string, either 'Upper' or 'Lower' which tells the program
+            to look for a separator sheet which is either above (in the Y direction)
+            the reconnection zone or below it respectively
+        - N is the integer resolution, 1 represents doing every point in the simulation
+            2 would be every other point, 4 every fourth point and so on
+        OPTIONS - 
+            MapSeparator(['SepX.npy', 'SepY.npy', 'SepZ.npy'], [Bx, By, Bz], Ystart, 'Upper', N = 1):
+                Finds the upper separator sheet, and saves the data
+            MapSeparator(['SepX.npy', 'SepY.npy', 'SepZ.npy'], [Bx, By, Bz], Ystart, 'Lower', N = 1):
+                Finds the lower separator sheet, and saves the data
+
+    SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
+        * lower separator is problematic, it can be mapped but the location
+            is very dependant on the number of passes, this can be seen using
+            the separator slice method with B included
+        - PathSepX, Y and Z are string path names to the separator data to be loaded
+        - Xsize, Ysize and Zsize are integer sizes of the simulation
+        - B is an optional length 3 vector of the magnetic field data
+        OPTIONS - 
+            SeparatorLoader('SepX.npy', 'SepY.npy', 'SepZ.npy', 2048, 1024, 1024):
+                quickly plots projections of the separator
+            SeparatorLoader('SepX.npy', 'SepY.npy', 'SepZ.npy', 2048, 1024, 1024, [Bx, By, Bz]):
+                Also plots projection of separator down Z axis over a colormesh of |B| as 
+                well as a 3D plot of the separator over |B|
+
+    SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
+        * recursive allowing user to quickly slice multiple points
+        - PathSepX, Y and Z are string path names to the separator data to be loaded
+        - Xsize, Ysize and Zsize are integer sizes of the simulation
+        - B is an optional length 3 vector of the magnetic field data
+        OPTIONS - 
+            SeparatorSlice('SepX.npy', 'SepY.npy', 'SepZ.npy', 2048, 1024, 1024):
+                Offers the user the option to slice the separator at any integer point along
+                the X or Z axis, and plots Xline projections down the X and Y axes.
+            SeparatorSlice('SepX.npy', 'SepY.npy', 'SepZ.npy', 2048, 1024, 1024, [Bx, By, Bz]):
+                Also traces a point starting just above and just below the separator sheet
+                at points [0, SepY[0] +/- .3, 0] and then creates a puncture plot of these two
+                traces, plotting it over the separator slice at the point selected
