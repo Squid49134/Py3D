@@ -303,7 +303,7 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
     # If E is included plot Einterp per step
     if (len(B) == 6):
         fig4 = plt.figure(4)
-        Xvals = np.linspace(0, Steps, Steps)
+        Xvals = np.linspace(0, Steps - 1, Steps)
         fig4.set_size_inches(30,7, forward = True)
         fig4.patch.set_facecolor('lightgrey')
         plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
