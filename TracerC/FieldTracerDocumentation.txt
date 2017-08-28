@@ -37,6 +37,7 @@ User Methods:
 
     MapSeparator(Saves, B, Ystart, UPorLOW, N = 1):
         - Saves is a vector of string path names to save the X, Y and Z data
+        - Saves names are checked before mapping separator to avoid overwritting data
         - B is a length 3 vector of the magnetic field data
         - Ystart is a point close to the separator at point [0, Ystart, 0] which
             provides a starting point for the mapping.  This is easy to find 
@@ -46,6 +47,7 @@ User Methods:
             the reconnection zone or below it respectively
         - N is the integer resolution, 1 represents doing every point in the simulation
             2 would be every other point, 4 every fourth point and so on
+        - Using too large an N may cause instability
         OPTIONS - 
             MapSeparator(['SepX.npy', 'SepY.npy', 'SepZ.npy'], [Bx, By, Bz], Ystart, 'Upper', N = 1):
                 Finds the upper separator sheet, and saves the data

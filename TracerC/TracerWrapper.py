@@ -1,32 +1,37 @@
-#-----------------------------------------------------------------------------#
-# 2D and 3D magnetic field line tracing program
+# FIELD TRACER
 
-import os
+# SEE DOCUMENTATION.TXT FOR INFO ON METHOD ARGUMENTS AND FUNCTIONS
+
 import numpy as np
 import matplotlib as mpt
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import AutoMinorLocator
 from Py3D.sub import load_movie
+import ctypes
+import os
+from numpy.ctypeslib import ndpointer
 
 __all__ = ['TraceField', 'MapSeparator', 'SeparatorLoader', 'SeparatorSlice']
 
-# now for linking C to python
-from numpy.ctypeslib import ndpointer
-import ctypes
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+# LINKING THE SHARED C LIBRARY
 
-# This is called here so realpath is where the .so file is
+# The path to the current file
 _pathlibdir   = os.path.dirname(os.path.realpath(__file__))
 
-# linking to the C library
+# Linking the shared object file
 pathlib   = os.path.join(_pathlibdir,'TracerFunctions.so')
 _lib = ctypes.cdll.LoadLibrary(pathlib)
 
 #-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+# FIELD TRACING METHODS
 
-# TRACER
+# Master 2D and 3D tracing method
 def TraceField(B, Start, ds = None, passes = None, Saves = None):
-    
+    # Checking length of B vector, for 2D, 3D, or 3D with E interp
     try:
         if ((len(B) == 2) or (len(B) == 3) or (len(B) == 6)):
             0
@@ -37,9 +42,9 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
         print('invalid B')
         return 0
         
-    # 3D
+    #3D
     if ((len(B) == 3) or (len(B) == 6)):
-        # checks validity of provided args
+        # Checking the validitiy of provided arguments
         try:
             try:
                 Saves[0] == 'String'
@@ -49,7 +54,7 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
                 if (Saves == None):
                     1
                 else:
-                    print('invalid saves')
+                    print('invalid arguments')
                     return 0
             if (len(B) == 6):
                 B[3][0,0,0] * B[4][0,0,0] * B[5][0,0,0]
@@ -62,11 +67,10 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
             float(passes)
             float(ds)
         except:
-            print('invalid arguments, B components must be equal sized arrays')
-            print('X, Y, Z must be within the size of B arrays')
+            print('invalid arguments')
             return 0
-        
-        # calculates max number of differential steps along line
+            
+        # Determining the number of steps
         if B[0].shape[0] >= B[0].shape[1] and B[0].shape[0] >= B[0].shape[2]:
             Steps = passes * (B[0].shape[0] / ds)
         elif B[0].shape[1] >= B[0].shape[0] and B[0].shape[1] >= B[0].shape[2]:
@@ -74,18 +78,20 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
         else:
             Steps = passes * (B[0].shape[2] / ds)
         
-        # sizes of data files are imoprtant to boundary conditions in 
-        # the tracing routines
+        # Setting simulation size
         Xsize = B[0].shape[0]
         Ysize = B[0].shape[1]
         Zsize = B[0].shape[2]
         
+        # The 3D tracing wrapper call either with or without save paths
         try:
             Saves[0]
-            RK4_3D(Start[0], Start[1], Start[2], B, Xsize, Ysize, Zsize, ds, int(Steps), Saves)
+            FieldLine_3D(Start[0], Start[1], Start[2], B, Xsize, Ysize, Zsize, ds, int(Steps), Saves)
         except:
-            RK4_3D(Start[0], Start[1], Start[2], B, Xsize, Ysize, Zsize, ds, int(Steps))
+            FieldLine_3D(Start[0], Start[1], Start[2], B, Xsize, Ysize, Zsize, ds, int(Steps))
         
+        # Checking if the user wants to trace another point, and if so 
+        # takes new input arguments
         while True:
             print('')
             cont = raw_input('Trace another point? Y or N \n')
@@ -114,36 +120,36 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
             else:
                 print('invalid input try again \n')
                 continue
-            
+    
+    # 2D
     else:
+        # ds is set in 2D for the purpose of checking for line completion
         ds2D = .1
-        # checks validity of provided args
+        # Checking validity of arguments
         try:
             B[0][0,0] * B[1][0,0]
             assert(B[0].shape == B[1].shape)
             assert(0 <= Start[0] <= B[0].shape[0] - 1)
             assert(0 <= Start[1] <= B[0].shape[1] - 1)
         except:
-            print('invalid arguments, B components must be equal sized arrays')
-            print('X, Y must be within the size of B arrays')
+            print('invalid arguments')
             return 0
         
-        # calculates max number of differential steps along line
+        # The number of steps is also set in 2D for checking line completion
         if B[0].shape[0] >= B[0].shape[1]:
             Steps = 10 * (B[0].shape[0] / ds2D)
         else:
             Steps = 10 * (B[0].shape[1] / ds2D)
         
-        # sizes of data files are imoprtant to boundary conditions in 
-        # the tracing routines
+        # Setting simulation size
         Xsize = B[0].shape[0]
         Ysize = B[0].shape[1]
-            
-        # the 2D trace call
-        RK4_2D(Start[0], Start[1], B[0], B[1], Xsize, Ysize, ds2D, Steps)
         
-        # checks if user would like to trace a different point with differnt
-        # X, Y, Z starting position
+        # The 2D tracing wrapper call
+        FieldLine_2D(Start[0], Start[1], B[0], B[1], Xsize, Ysize, ds2D, int(Steps))
+        
+        # Checks if the user would like to trace another point, and if so takes
+        # new input arguments
         while True:    
             print(' ')
             cont = raw_input('Trace another point? Y or N \n')
@@ -166,60 +172,10 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
                 print('invalid input try again \n')
                 continue
             
-            
-def RK4_2D(Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
-    func          = _lib.FieldLine2D
-    func.restype  = int
-    func.argtypes = [ndpointer(ctypes.c_double),  
-                     ndpointer(ctypes.c_double), 
-                     ctypes.c_double,
-                     ctypes.c_double, 
-                     ndpointer(ctypes.c_float), 
-                     ndpointer(ctypes.c_float), 
-                     ctypes.c_uint, 
-                     ctypes.c_uint, 
-                     ctypes.c_float, 
-                     ctypes.c_uint]
-                     
-    print('\n' + 'Configuring B...')                
-    Line_X = np.zeros(int(Steps))
-    Line_Y = np.zeros(int(Steps))
-    
-    Bx = np.zeros(Xsize * Ysize)
-    By = np.zeros(Xsize * Ysize)
-
-    Bx = B1.reshape(Xsize*Ysize,order='F')
-    By = B2.reshape(Xsize*Ysize,order='F')
-    
-    print('\n' + 'Tracing...')
-    Length = func(Line_X, Line_Y, Xinit, Yinit, Bx, By, Xsize, Ysize, ds, int(Steps))
-    Line_X = Line_X[:Length]
-    Line_Y = Line_Y[:Length]
-    
-    # the figure
-    fig1 = plt.figure(1)
-    fig1.set_size_inches(10,10, forward = True)
-    fig1.patch.set_facecolor('lightgrey')
-    ax = fig1.add_subplot(111)
-    ax.set_ylim([0, Ysize-1])
-    ax.set_xlim([0, Xsize-1])
-    ax.set_ylabel('Y', rotation = 0)
-    ax.set_xlabel('X')
-    ax.yaxis.set_label_position('right')
-    ax.yaxis.labelpad = 10
-    
-    print('\n' + 'Calculating |B|...')
-    Bm = np.sqrt(B1**2 + B2**2)
-
-    print('\n' + 'plotting...')
-    ax.pcolormesh(Bm.T, vmin = -.1)            
-    ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .01, color='black')
-    ax.set_title('$2D$' + ' ' + '$Line$' + ' ' + '$Trace$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
-    
-    plt.show()                
-        
-def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None):
-    func          = _lib.FieldLine3D
+# 3D tracing wrapper and plotter
+def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None):
+    # Identifying the C tracing function
+    func          = _lib.RK4_3D
     func.restype  = int
     func.argtypes = [ndpointer(ctypes.c_double), 
                      ndpointer(ctypes.c_double), 
@@ -240,38 +196,49 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
                      ndpointer(ctypes.c_double),
                      ndpointer(ctypes.c_double)]
                      
-    print('\n' + 'Configuring B...')    
+    print('\n' + 'Configuring B...')  
+    # Arrays for the traced line data points
     Line_X = np.zeros(Steps)
     Line_Y = np.zeros(Steps)
     Line_Z = np.zeros(Steps)
     
+    # Arrays for restructuring B
     Bx = np.zeros(Xsize * Ysize * Zsize)
     By = np.zeros(Xsize * Ysize * Zsize)
     Bz = np.zeros(Xsize * Ysize * Zsize)
 
-    Bx = B[0].reshape(Xsize*Ysize*Zsize,order='F')
-    By = B[1].reshape(Xsize*Ysize*Zsize,order='F')
-    Bz = B[2].reshape(Xsize*Ysize*Zsize,order='F')
+    # Restructuring Bx, By, and Bz into 1D arrays so they can be passed as
+    # double pointers to the C function
+    Bx = B[0].reshape(Xsize * Ysize * Zsize, order='F')
+    By = B[1].reshape(Xsize * Ysize * Zsize, order='F')
+    Bz = B[2].reshape(Xsize * Ysize * Zsize, order='F')
     
+    # If E is not included Ex, Ey, and Ez are just [0,0,0] so they can be
+    # distinguished form Ex, Ey, and Ez data sets when passed to the C func.
     Ex = np.zeros(3)
     Ey = np.zeros(3)
     Ez = np.zeros(3)
+    # An array for the E interpolated data
     EI = np.zeros(3)
     
+    # If E is included, reshape E like B
     if (len(B) == 6):
         Ex = np.zeros(Xsize * Ysize * Zsize)
         Ey = np.zeros(Xsize * Ysize * Zsize)
         Ez = np.zeros(Xsize * Ysize * Zsize)
         EI = np.zeros(Steps)
 
-        Ex = B[3].reshape(Xsize*Ysize*Zsize,order='F')
-        Ey = B[4].reshape(Xsize*Ysize*Zsize,order='F')
-        Ez = B[5].reshape(Xsize*Ysize*Zsize,order='F')
-
+        Ex = B[3].reshape(Xsize * Ysize * Zsize, order='F')
+        Ey = B[4].reshape(Xsize * Ysize * Zsize, order='F')
+        Ez = B[5].reshape(Xsize * Ysize * Zsize, order='F')
+    
     print('\n' + 'Tracing...')
+    # Callling the C 3D tracing method which returns the total of E
+    # interpolated along the trace path, or 0 if E is not passed
     interp = func(Line_X, Line_Y, Line_Z, Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps, Ex, Ey, Ez, EI)
     print('Done Tracing.')
     
+    # Saving if appropriate
     try:
         Saves[0]
         print('Saving...')
@@ -282,17 +249,18 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
     except:
         1
         
-    
+    # Plotting the basic line trace projections which can be done quickly 
+    # since no colormeshes are involved
     print('\n' + 'Preparing Projection Plots...')    
     
-    # the figure
+    # The figure
     fig1 = plt.figure(1)
     fig1.set_size_inches(5, 10, forward = True)
     plt.subplots_adjust(left = .1, bottom = .06, right = .9, top = .86, wspace = None, hspace = .45)
     fig1.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 18, y = .99)
     fig1.patch.set_facecolor('lightgrey')
-    # making 3D plot
     
+    # The plots
     ax = fig1.add_subplot(311)
     ax.set_title('$Down$' + ' ' + '$Z$' + ' ' + '$axis$', fontsize = 14)
     ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .01, color = 'b')
@@ -332,15 +300,15 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
     ax3.yaxis.set_label_position('right')
     ax3.yaxis.labelpad = 10
     
+    # If E is included plot Einterp per step
     if (len(B) == 6):
         fig4 = plt.figure(4)
         Xvals = np.linspace(0, Steps, Steps)
         fig4.set_size_inches(30,7, forward = True)
         fig4.patch.set_facecolor('lightgrey')
         plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
-        # making 3D plot
+        
         ax4 = fig4.add_subplot(111)
-        # 500, 180, 250 is inside reconn zone
         ax4.plot(Xvals, EI, linewidth = .5, color = 'g')
         ax4.set_ylabel('Y', rotation = 0)
         ax4.set_xlabel('X')
@@ -348,6 +316,8 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
         ax4.yaxis.labelpad = 10
         ax4.set_title('$E$' + ' ' + '$Interpolated$' + ' ' + '$Per$' + ' ' + '$Step$' + ' ' + '$For$' + ' ' + str(float(Steps)*ds / B[0].shape[0]) + ' ' + '$Passes$' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Einterp$' + ' ' + '$Total$' + ' ' + '$=$' + ' ' + str(interp), fontsize=18)
 
+    # Checking if the user would like to take extra time creating 3D and
+    # puncture plots which require developing colormeshs
     while True:
         ans = raw_input('\n' + 'Create 3D and Puncture Plots? Y or N \n')
         if ((ans == 'Y') or (ans == 'y')):
@@ -356,39 +326,43 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
                 print('\n' + '|B| already Calculated')
             except:
                 print('\n' + 'Calculating |B|...')
-                Bm0 = np.zeros(4)
-                Bm1 = np.zeros(4)
-                Bm2 = np.zeros(4)
-                Bm3 = np.zeros(4)
-                Bm4 = np.zeros(4)
-                Bm5 = np.zeros(4)
                 
+                # Only calculates |B| for the 6 planes which are plotted to
+                # avoid excessive time required to find |B| for the entire sim.
                 Bm0 = np.sqrt(B[0][0,:,:]**2 + B[1][0,:,:]**2 + B[2][0,:,:]**2)
                 Bm1 = np.sqrt(B[0][:,0,:]**2 + B[1][:,0,:]**2 + B[2][:,0,:]**2)
                 Bm2 = np.sqrt(B[0][:,:,0]**2 + B[1][:,:,0]**2 + B[2][:,:,0]**2)
-                Bm3 = np.sqrt(B[0][int(Xinit),:,:]**2 + B[1][int(Xinit),:,:]**2 + B[2][int(Xinit),:,:]**2)
-                Bm4 = np.sqrt(B[0][:,int(Yinit),:]**2 + B[1][:,int(Yinit),:]**2 + B[2][:,int(Yinit),:]**2)
-                Bm5 = np.sqrt(B[0][:,:,int(Zinit)]**2 + B[1][:,:,int(Zinit)]**2 + B[2][:,:,int(Zinit)]**2)
+                Bm3 = np.sqrt(B[0][Xinit,:,:]**2 + B[1][Xinit,:,:]**2 + B[2][Xinit,:,:]**2)
+                Bm4 = np.sqrt(B[0][:,Yinit,:]**2 + B[1][:,Yinit,:]**2 + B[2][:,Yinit,:]**2)
+                Bm5 = np.sqrt(B[0][:,:,Zinit]**2 + B[1][:,:,Zinit]**2 + B[2][:,:,Zinit]**2)
             
+            # Min and Max values for normalizing colormaps
             MIN = Bm2.min()
             MAX = Bm2.max()
             
             print('\n'+'Making Colormeshs...')
+            # Arrays for making meshgrids
             Xval = np.linspace(0, Xsize - 1, Xsize)
             Yval = np.linspace(0, Ysize - 1, Ysize)
             Zval = np.linspace(0, Zsize - 1, Zsize)
         
+            # Meshgrids to be plotted in 3D after applying the |B| colormap
+            # allows plotting 2D colormesh in 3D
             XZ, YZ = np.meshgrid(Xval, Yval)
+            # Field lines actually follow the transpose of the data
             XZ = XZ.T
             YZ = YZ.T
+            # This meshgrid will be on the plane Z = 0
             ZZ = np.zeros((Xsize, Ysize))
             cmp = plt.cm.bwr
+            # Normalizing the colomap
             norm = mpt.colors.Normalize(vmin = MIN, vmax = MAX)
             colorsZ = cmp(norm(Bm2))
             
             XY, ZY = np.meshgrid(Xval, Zval)
             XY = XY.T
             ZY = ZY.T
+            # This meshgrid will be on the plane Y = 0
             YY = np.zeros((Xsize, Zsize))
             cmp = plt.cm.bwr
             norm = mpt.colors.Normalize(vmin = MIN, vmax = MAX)
@@ -397,21 +371,24 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
             YX, ZX = np.meshgrid(Yval, Zval)
             ZX = ZX.T
             YX = YX.T
+            # This meshgrid will be on the plane X = 0
             XX = np.zeros((Zsize, Ysize))
             cmp = plt.cm.bwr
             norm = mpt.colors.Normalize(vmin = MIN, vmax = MAX)
             colorsX = cmp(norm(Bm0))    
             
+            # The 3D plot
             fig2 = plt.figure(2)
             fig2.set_size_inches(10, 10, forward = True)
             fig2.patch.set_facecolor('lightgrey')
             fig2.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$3D$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 20, y = .96)
-            # making 3D plot
-            ax4 = fig2.add_subplot(111, projection = '3d')
-            # 500, 180, 250 is inside reconn zone
             
+            ax4 = fig2.add_subplot(111, projection = '3d')
             ax4.plot(Line_Z, Line_X, Line_Y, linestyle = 'none', marker = '.', markersize = .01, color = 'k')
             ax4.view_init(elev = 5, azim = 5)
+            # rstride and cstride may be adjusted to change the resolution of
+            # the 3D colormeshs, and the plotting speed, 10 means every 10th point,
+            # 5 every 5th etc.
             ax4.plot_surface(ZZ, XZ, YZ, facecolors = colorsZ, shade = False, rstride = 10, cstride = 10)
             ax4.plot_surface(ZY, XY, YY, facecolors = colorsY, shade = False, rstride = 10, cstride = 10)
             ax4.plot_surface(ZX, XX, YX, facecolors = colorsX, shade = False, rstride = 10, cstride = 10) 
@@ -425,26 +402,32 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
             fig2.tight_layout()
             
             print('\n' + 'Puncturing...')
-            #Puncture Plot
+            # Calling the puncture plot generators which return 2 arrays
+            # containing coordinates for the puncture points, this one
+            # punctures the Z plane at Z = Zinit
             PunctZ = Punct(Line_Z, Zinit, ds, Steps, Line_X, Line_Y)
             Xz = PunctZ[0]
             Yz = PunctZ[1]
             
+            # The Y plane puncture
             PunctY = Punct(Line_Y, Yinit, ds, Steps, Line_X, Line_Z) 
             Xy = PunctY[0]
             Zy = PunctY[1]
             
+            # The X plane puncture
             PunctX = Punct(Line_X, Xinit, ds, Steps, Line_Z, Line_Y)
             Zx = PunctX[0]
             Yx = PunctX[1]
             
-            xx = np.linspace(0, Xsize, num = Xsize)
-            yy = np.linspace(0, Ysize, num = Ysize)
-            zz = np.linspace(0, Zsize, num = Zsize)
+            # Arrays for plotting puncture plots
+            xx = np.linspace(0, Xsize - 1, Xsize)
+            yy = np.linspace(0, Ysize - 1, Ysize)
+            zz = np.linspace(0, Zsize - 1, Zsize)
             
+            # The puncture plots
             fig3 = plt.figure(3)
             fig3.set_size_inches(5, 10, forward = True)
-            fig3.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 18, y = .99)
+            fig3.suptitle('$Puncture$' + ' ' + '$Plots$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 18, y = .99)
             plt.subplots_adjust(left = .1, bottom = .06, right = .9, top = .86, wspace = None, hspace = .45)
             fig3.patch.set_facecolor('lightgrey')
             
@@ -503,9 +486,80 @@ def RK4_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None)
         
     print('\n' + 'Plotting...')
     plt.show()
-   
-   
+
+
+# 2D tracing wrapper and plotter
+def FieldLine_2D(Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
+    # Identifying the C tracing function
+    func          = _lib.RK4_2D
+    func.restype  = int
+    func.argtypes = [ndpointer(ctypes.c_double),  
+                     ndpointer(ctypes.c_double), 
+                     ctypes.c_double,
+                     ctypes.c_double, 
+                     ndpointer(ctypes.c_float), 
+                     ndpointer(ctypes.c_float), 
+                     ctypes.c_uint, 
+                     ctypes.c_uint, 
+                     ctypes.c_float, 
+                     ctypes.c_uint]
+                     
+    print('\n' + 'Configuring B...')
+    # Arrays for the traced line data points              
+    Line_X = np.zeros(int(Steps))
+    Line_Y = np.zeros(int(Steps))
+    
+    # Arrays for restructuring B
+    Bx = np.zeros(Xsize * Ysize)
+    By = np.zeros(Xsize * Ysize)
+
+    # Restructuring Bx, and By into 1D arrays so they can be passed as
+    # double pointers to the C function
+    Bx = B1.reshape(Xsize * Ysize, order='F')
+    By = B2.reshape(Xsize * Ysize, order='F')
+    
+    print('\n' + 'Tracing...')
+    # Callling the C 2D tracing method which returns the number of steps
+    # for the line to bite its own tail so the data arrays can be trimmed
+    Length = func(Line_X, Line_Y, Xinit, Yinit, Bx, By, Xsize, Ysize, ds, Steps)
+    # Trimming the data arryas to remove unused points
+    Line_X = Line_X[:Length]
+    Line_Y = Line_Y[:Length]
+    
+    # The figure
+    fig1 = plt.figure(1)
+    fig1.set_size_inches(10,10, forward = True)
+    fig1.patch.set_facecolor('lightgrey')
+    
+    # The plot
+    ax = fig1.add_subplot(111)
+    ax.set_ylim([0, Ysize-1])
+    ax.set_xlim([0, Xsize-1])
+    ax.set_ylabel('Y', rotation = 0)
+    ax.set_xlabel('X')
+    ax.yaxis.set_label_position('right')
+    ax.yaxis.labelpad = 10
+    
+    print('\n' + 'Calculating |B|...')
+    Bm = np.sqrt(B1**2 + B2**2)
+
+    print('\n' + 'plotting...')
+    # Plotting |B| colormesh
+    ax.pcolormesh(Bm.T, vmin = -.1)            
+    ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .01, color='black')
+    ax.set_title('$2D$' + ' ' + '$Line$' + ' ' + '$Trace$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
+    
+    plt.show()                
+        
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#   
+# PUNCTURE METHODS
+
+# Puncture wrapper
+# To make a puncture plot of Z = 100, PunctAxisData should be the SepZ data,
+# OtherAxisData1 and 2 would be SepX and SepY
 def Punct(PunctAxisData, Val, ds, Steps, OtherAxisData1, OtherAxisData2):
+    # Identifying the C puncturing function
     func          = _lib.Punct
     func.restype  = ctypes.c_int
     func.argtypes = [ndpointer(ctypes.c_double),
@@ -516,21 +570,35 @@ def Punct(PunctAxisData, Val, ds, Steps, OtherAxisData1, OtherAxisData2):
                      ndpointer(ctypes.c_double),
                      ndpointer(ctypes.c_double), 
                      ndpointer(ctypes.c_double),]
-                     
+    
+    # Arrays to hold puncture point coordinates       
     Points1 = np.zeros(Steps)
-    Points2 = np.zeros(Steps)           
-    Total = func(PunctAxisData, Val, ds, int(Steps), OtherAxisData1, OtherAxisData2, Points1, Points2)
+    Points2 = np.zeros(Steps)
+    # Callling the C puncturing method which returns the total number of
+    # puncture points to the arrays can be trimmed
+    Total = func(PunctAxisData, Val, ds, Steps, OtherAxisData1, OtherAxisData2, Points1, Points2)
+    # Trimming the data arrays
     Points1 = Points1[:Total]
     Points2 = Points2[:Total]
     
+    # returns the puncture points
     return Points1, Points2
-    
-#-----------------------------------------------------------------------------#
-# SEPARATOR
 
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+# SEPARATOR MAPPING METHODS
+
+# Master separator mapping method
 def MapSeparator(Saves, B, Ystart, UPorLOW, N = 1):
+    # ds and passes are set to provide the fastest possible execution
+    # By trial and error it was determined that ds must be <= 3 to avoid line
+    # drifitng which will cause significant erros near a separator sheet, this
+    # may relate to the debye length of the simulation
     ds = 3
+    # Any field line which reconnects will do so within 1.5 passes
     passes = 1.5
+    
+    # Checking validity of arguments
     try:
         Saves[0] == 'String'
         Saves[1] == 'String'
@@ -539,26 +607,53 @@ def MapSeparator(Saves, B, Ystart, UPorLOW, N = 1):
         assert(B[0].shape == B[1].shape == B[2].shape)
         assert(int(N))
         assert(float(Ystart))
-        assert(1 <= N < (B[0].shape[0]/30))
+        assert(1 <= N < (B[0].shape[0] / 30))
         assert(0 < Ystart < B[0].shape[1])
         assert((UPorLOW == 'Upper') or (UPorLOW == 'Lower'))
         
     except:
-        print('invalid arguments, B components must be equal sized arrays')
+        print('invalid arguments')
         return 0
-    SeparatorX = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
-    SeparatorY = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
-    SeparatorZ = np.zeros((B[0].shape[0]/N)*(B[0].shape[2]/N))
-    SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart, UPorLOW)
+        
+    try:
+        np.load(Saves[0])
+        print('OVERWRITE WARNING, Save name already exists')
+        return 0
+    except:
+        1
+    try:
+        np.load(Saves[1])
+        print('OVERWRITE WARNING, Save name already exists')
+        return 0
+    except:
+        1
+    try:
+        np.load(Saves[2])
+        print('OVERWRITE WARNING, Save name already exists')
+        return 0
+    except:
+        1
+
+    # Arrays for separator data points
+    SeparatorX = np.zeros((B[0].shape[0] / N) * (B[0].shape[2] / N))
+    SeparatorY = np.zeros((B[0].shape[0] / N) * (B[0].shape[2] / N))
+    SeparatorZ = np.zeros((B[0].shape[0] / N) * (B[0].shape[2] / N))
+    
+    # Calling the separator mapping wrapper
+    SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart, UPorLOW)    
     
     print('Saving...')
+    # Saving the data
     np.save(Saves[0], SeparatorX)
     np.save(Saves[1], SeparatorY)
     np.save(Saves[2], SeparatorZ)
     print('Saved.')
 
 
+# Separator mapping method, for each point in the X Z plane calls a C 
+# method which searches for individual points on the separator surface
 def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart, UPorLOWstr):
+    # Identifying the C separator point function
     func          = _lib.SepPoints
     func.restype  = ctypes.c_double
     func.argtypes = [ctypes.c_uint, 
@@ -575,47 +670,78 @@ def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart, UPor
                      ndpointer(ctypes.c_double), 
                      ndpointer(ctypes.c_double),
                      ctypes.c_uint]
-     
+    
+    # Determining if the program should search for an upper or lower separator
     if (UPorLOWstr == 'Upper'):
         UPorLOWint = 1
     else:
         UPorLOWint = 0
+    
+    # Setting the steps
     Steps = passes * (B[0].shape[0] / ds)
+    
+    # Setting the simulation size
     Xsize = B[0].shape[0]
     Ysize = B[0].shape[1]
     Zsize = B[0].shape[2]
+    
+    # Arrays for restructuring B
     Bx = np.zeros(Xsize * Ysize * Zsize)
     By = np.zeros(Xsize * Ysize * Zsize)
     Bz = np.zeros(Xsize * Ysize * Zsize)
 
-    Bx = B[0].reshape(Xsize*Ysize*Zsize,order='F')
-    By = B[1].reshape(Xsize*Ysize*Zsize,order='F')
-    Bz = B[2].reshape(Xsize*Ysize*Zsize,order='F')
+    # Restructuring Bx, By, and Bz into 1D arrays so they can be passed as
+    # double pointers to the C function
+    Bx = B[0].reshape(Xsize * Ysize * Zsize, order='F')
+    By = B[1].reshape(Xsize * Ysize * Zsize, order='F')
+    Bz = B[2].reshape(Xsize * Ysize * Zsize, order='F')
     
+    # A starting point for the separator mapping
     Start = np.zeros(3)
     Start[0] = 0
     Start[1] = Ystart
     Start[2] = 0
-    Yval = func(N, Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ, UPorLOWint)
+    
+    # Finding the first point on the separator by calling the C function which
+    # returns the Y value of the separator point at X = 0 and Z = 0
+    Yval = func(int(N), Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ, UPorLOWint)
+    
+    # Adding this point to the data arrays    
     SeparatorX[0] = 0
     SeparatorY[0] = Yval
     SeparatorZ[0] = 0
 
+    # Loop to search for remaining separator points, this could have been
+    # implemented in C, but this offfered a minimal speed increase and would
+    # make it impossible to output status updates to the user which are
+    # very helpful
     for i in range(0, Xsize/N):
+        # Status update
         print(str(i+1) + '/' + str(Xsize/N))
         for j in range(0, Zsize/N):
+            # Skip the first point which was already found
             if ((i == 0) and (j == 0)):
                 continue
+            # Identifying the next point to be searched for
             Start[0] = (N * i)
+            # Use the previous point as a starting Y value for the next point,
+            # greatly reducing the time required to find points
             Start[1] = SeparatorY[(j + (Zsize/N)*(i))-1]
             Start[2] = (N * j)
-            Yval = func(N, Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ, UPorLOWint)
-            SeparatorX[j + (Zsize/N)*(i)] = N * i
-            SeparatorY[j + (Zsize/N)*(i)] = Yval
-            SeparatorZ[j + (Zsize/N)*(i)] = N * j
+            # Calling the C separator point searching method
+            Yval = func(int(N), Start, Bx, By, Bz, Xsize, Ysize, Zsize, float(ds), int(Steps), SeparatorX, SeparatorY, SeparatorZ, UPorLOWint)
+            # Adding data points            
+            SeparatorX[j + ((Zsize / N) * i)] = N * i
+            SeparatorY[j + ((Zsize / N) * i)] = Yval
+            SeparatorZ[j + ((Zsize / N) * i)] = N * j
 
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+# SEPARATOR ANALYSIS METHODS
 
+# Separator slice method
 def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
+    # Checking validiity of arguments
     try:
         Bx = B[0]
         By = B[1]
@@ -634,14 +760,23 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
         except:
             print('invalid arguments')
             return 0
-            
+    
+    # Ensuring these are integers
+    Xsize = int(Xsize)
+    Ysize = int(Ysize)
+    Zsize = int(Zsize)
+    
+    # Checking if the user would like to plot slices along the X or the Z axis
+    # A slice along the Y axis is not useful
     while True:
         print(' ')
         Axis = str(raw_input('Slice X or Z value: \n'))
+        # X slices
         if ((Axis == 'X') or (Axis == 'x')):
             while True:
                 while True:
                     try:
+                        # The value to slice
                         X = int(raw_input('Enter X value for slice: \n'))
                         assert(0 <= X < Xsize)
                         break;
@@ -650,28 +785,33 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                         continue
                 
                 print('\n' + 'Loading')
+                # loading the separator data
                 SepX = np.load(PathSepX)
                 SepY = np.load(PathSepY)
                 SepZ = np.load(PathSepZ)
                 print('Loaded' + '\n')
+                
                 print('Slicing...')
                 
+                # Arrays for the separator X slice data
                 SepYSlice = np.zeros(Zsize)        
                 SepZSlice = np.zeros(Zsize)             
                 
-                First = Zsize*(X)
+                # Identifying the points in the separator data corresponding to
+                # the the X value to be sliced
+                First = Zsize * (X)
                 SepYSlice = SepY[First:(First + Zsize - 1)]
                 SepZSlice = SepZ[First:(First + Zsize - 1)]
                 
                 print('\n' + 'Generating Figures...')
-                
+                # The figure
                 fig = plt.figure(1)
                 fig.set_size_inches(30,6, forward = True)
                 fig.patch.set_facecolor('lightgrey')
                 plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
-                # making 3D plot
+                
+                # The plot
                 ax = fig.add_subplot(111)
-                # 500, 180, 250 is inside reconn zone
                 ax.plot(SepZSlice, SepYSlice, linewidth = .5, color = 'g')
                 ax.set_ylabel('Y', rotation = 0)
                 ax.set_xlabel('Z')
@@ -679,16 +819,19 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                 ax.yaxis.labelpad = 10
                 ax.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(X), fontsize=20)
                 
+                # If B is included, plots a puncture plot of the slice by
+                # tracing a line started right above and another right below
+                # the separator
                 try:
                     Bz[1]
                     
+                    # The slice / puncture plot
                     fig2 = plt.figure(2)
                     fig2.set_size_inches(30,6, forward = True)
                     fig2.patch.set_facecolor('lightgrey')
                     plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
-                    # making 3D plot
+                    
                     ax2 = fig2.add_subplot(111)
-                    # 500, 180, 250 is inside reconn zone
                     ax2.plot(SepZSlice, SepYSlice, linewidth = 2, color = 'g', label = 'Separator Sheet')
                     ax2.set_ylabel('Y', rotation = 0)
                     ax2.set_xlabel('Z')
@@ -696,9 +839,13 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                     ax2.yaxis.labelpad = 10
                     ax2.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Puncture$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(X), fontsize=20)
                     
+                    # Both lines are traced for 100 passes
                     Steps = 1000*Bx.shape[0]
-                    Upper = RK4_3D_SepSlice(0, SepY[0] + .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
-                    Lower = RK4_3D_SepSlice(0, SepY[0] - .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
+                    # Tracing the line above
+                    Upper = FieldLine_3D_SepSlice(0, SepY[0] + .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
+                    # And below
+                    Lower = FieldLine_3D_SepSlice(0, SepY[0] - .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
+                    # Finding puncture points of both lines
                     UpperPunct = Punct(Upper[0], X, .1, Steps, Upper[2], Upper[1])
                     LowerPunct = Punct(Lower[0], X, .1, Steps, Lower[2], Lower[1])
                     ax2.scatter(UpperPunct[0], UpperPunct[1], s = 3, c = 'r', label = 'Line Started Above')
@@ -709,11 +856,13 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                     1
                 
                 print('\n' + 'Finding XLine...')
+                # Finding and plotting the X line of the separator
                 XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize)                
                 
                 print('\n' + 'Plotting...')
                 plt.show()
                 
+                # Checks if the user would like to slice another point
                 while True:
                     print('\n')
                     ans = raw_input('Slice another point? Y or N \n')
@@ -725,7 +874,7 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                     else:
                         print('invalid input try again... \n')
                 break
-            
+        # Z slices
         elif ((Axis == 'Z') or (Axis == 'z')):
             while True:
                 while True:
@@ -737,29 +886,34 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                         print('invalid Z try again. \n')
                         continue
                 
+                # Loading the separator data
                 print('\n' + 'Loading')
                 SepX = np.load(PathSepX)
                 SepY = np.load(PathSepY)
                 SepZ = np.load(PathSepZ)
                 print('Loaded' + '\n')
+                
                 print('Slicing...')
                 
+                # Arrays for the separator X slice data
                 SepYSlice = np.zeros(Xsize)        
                 SepXSlice = np.zeros(Xsize)        
                 
+                # Identifying the points in the separator data corresponding to
+                # the the Z value to be sliced
                 for i in range(0, Xsize):
-                    SepYSlice[i] = SepY[Zsize*i + Z]
-                    SepXSlice[i] = SepX[Zsize*i + Z]
+                    SepYSlice[i] = SepY[Zsize * i + Z]
+                    SepXSlice[i] = SepX[Zsize * i + Z]
                 
                 print('\n' + 'Generating Figures...')            
-                
+                # The figure
                 fig = plt.figure(1)
                 fig.set_size_inches(30,6, forward = True)
                 fig.patch.set_facecolor('lightgrey')
                 plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
-                # making 3D plot
+    
+                # The plot
                 ax = fig.add_subplot(111)
-                # 500, 180, 250 is inside reconn zone
                 ax.plot(SepXSlice, SepYSlice, linewidth = .5, color = 'g')
                 ax.set_ylabel('Y', rotation = 0)
                 ax.set_xlabel('X')
@@ -767,16 +921,19 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                 ax.yaxis.labelpad = 10
                 ax.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Z$' + ' ' + '$=$' + ' ' + str(Z), fontsize=20)
                 
+                # If B is included, plots a puncture plot of the slice by
+                # tracing a line started right above and another right below
+                # the separator
                 try:
                     Bz[1]
                     
+                    # The slice / puncture plot
                     fig2 = plt.figure(2)
                     fig2.set_size_inches(30,6, forward = True)
                     fig2.patch.set_facecolor('lightgrey')
                     plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
-                    # making 3D plot
+                    
                     ax2 = fig2.add_subplot(111)
-                    # 500, 180, 250 is inside reconn zone
                     ax2.plot(SepXSlice, SepYSlice, linewidth = 2, color = 'g', label = 'Separator Sheet')
                     ax2.set_ylabel('Y', rotation = 0)
                     ax2.set_xlabel('X')
@@ -784,9 +941,13 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                     ax2.yaxis.labelpad = 10
                     ax2.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Puncture$' + ' ' + '$Z$' + ' ' + '$=$' + ' ' + str(Z), fontsize=20)
                     
+                    # Both lines are traced for 100 passes
                     Steps = 1000*Bx.shape[0]
-                    Upper = RK4_3D_SepSlice(0, SepY[0] + .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
-                    Lower = RK4_3D_SepSlice(0, SepY[0] - .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
+                    # Tracing the line above
+                    Upper = FieldLine_3D_SepSlice(0, SepY[0] + .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
+                    # And below
+                    Lower = FieldLine_3D_SepSlice(0, SepY[0] - .3, 0, Bx, By, Bz, Xsize, Ysize, Zsize, .1, Steps)
+                    # Finding puncture points of both lines
                     UpperPunct = Punct(Upper[2], Z, .1, Steps, Upper[0], Upper[1])
                     LowerPunct = Punct(Lower[2], Z, .1, Steps, Lower[0], Lower[1])
                     ax2.scatter(UpperPunct[0], UpperPunct[1], s = 3, c = 'r', label = 'Line Started Above')
@@ -797,11 +958,13 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                     1
                 
                 print('\n' + 'Finding XLine...')
+                # Finding and plotting the X line of the separator
                 XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize)
                 
                 print('\n' + 'Plotting...')
                 plt.show()            
                 
+                # Checks if the user would like to slice another point
                 while True:
                     print('\n')
                     ans = raw_input('Slice another point? Y or N \n')
@@ -818,8 +981,12 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
             print('invalid option')
 
 
-def RK4_3D_SepSlice(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
-    func          = _lib.FieldLine3D
+# 3D tracing wrapper and plotter for separator slice method
+# same as FieldLine_3D accept it does not plot the lines, returning them to
+# the separator slice method to be plotted instead
+def FieldLine_3D_SepSlice(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, Steps):
+    # Identifying the C tracing function
+    func          = _lib.RK4_3D
     func.restype  = None
     func.argtypes = [ndpointer(ctypes.c_double), 
                      ndpointer(ctypes.c_double), 
@@ -839,87 +1006,108 @@ def RK4_3D_SepSlice(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, ds, St
                      ndpointer(ctypes.c_double), 
                      ndpointer(ctypes.c_double),
                      ndpointer(ctypes.c_double)]
-                     
+          
+    # Arrays for the traced line data points           
     Line_X = np.zeros(Steps)
     Line_Y = np.zeros(Steps)
     Line_Z = np.zeros(Steps)
     
+    # Arrays for restructuring B
     Bx = np.zeros(Xsize * Ysize * Zsize)
     By = np.zeros(Xsize * Ysize * Zsize)
     Bz = np.zeros(Xsize * Ysize * Zsize)
 
-    Bx = B1.reshape(Xsize*Ysize*Zsize,order='F')
-    By = B2.reshape(Xsize*Ysize*Zsize,order='F')
-    Bz = B3.reshape(Xsize*Ysize*Zsize,order='F')
+    # Restructuring Bx, By, and Bz into 1D arrays so they can be passed as
+    # double pointers to the C function
+    Bx = B1.reshape(Xsize * Ysize * Zsize, order='F')
+    By = B2.reshape(Xsize * Ysize * Zsize, order='F')
+    Bz = B3.reshape(Xsize * Ysize * Zsize, order='F')
     
+    # E is a required argument for the C tracing function so here is set to 0
     Ex = np.zeros(3)
     Ey = np.zeros(3)
     Ez = np.zeros(3)
     EI = np.zeros(3)
     
     print('\n' + 'Tracing...')
+    # Callling the C 3D tracing method
     func(Line_X, Line_Y, Line_Z, Xinit, Yinit, Zinit, Bx, By, Bz, Xsize, Ysize, Zsize, ds, Steps, Ex, Ey, Ez, EI)
     print('Done Tracing')
     
     return Line_X, Line_Y, Line_Z
     
 def XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize):
+    # Arrays for the X line data points
     XLineX = np.zeros(Zsize)
     XLineY = np.zeros(Zsize)
     XLineZ = np.zeros(Zsize)
     
+    # Checking if the X line is above or below the separator by checking if
+    # various points in the middle of the separator are lower or higher than
+    # the first point
     Linepos = ' '
     while True:
+        # A fraction of the size of the separator
         num = 40
-        if SepY[0] > SepY[Zsize*(int(Xsize/num))]:
+        # Comparing the first point, and the point at the fraction of the Sep.
+        if SepY[0] > SepY[Zsize * (int(Xsize / num))]:
             Linepos = 'Lower'
             break
-        elif SepY[0] < SepY[Zsize*(int(Xsize/num))]:
+        elif SepY[0] < SepY[Zsize * (int(Xsize / num))]:
             Linepos = 'Upper'
             break
         else:
+            # Adjusting the size of the fraction
             if num < 5:
                 print('Coudl not find Xline')
                 return
-            num = num/2
+            num = num / 2
     
+    # If a lower X line, program looks for all the lowest Y points for each
+    # value of Z
     if (Linepos == 'Lower'):
         for k in range(0, Zsize):
+            # Min value for search
             MinY = Ysize + 1
             MinX = 0
             MinZ = 0
+            # Checks each X value for each Z
             for i in range(0, Xsize):
                 if SepY[(Zsize*i) + k] < MinY:
                     MinY = SepY[(Zsize*i) + k]
                     MinX = i
                     MinZ = k
-            
+            # Adding data point
             XLineX[k] = MinX
             XLineY[k] = MinY
             XLineZ[k] = MinZ
+    # If an upper X line, program looks for all the highest Y points for each
+    # value of Z
     else:
         for k in range(0, Zsize):
+            # Max value for search
             MaxY = -1
             MaxX = 0
             MaxZ = 0
+            # Checks each X value for each Z
             for i in range(0, Xsize):
                 if SepY[(Zsize*i) + k] > MaxY:
                     MaxY = SepY[(Zsize*i) + k]
                     MaxX = i
                     MaxZ = k
-            
+            # Adding data point
             XLineX[k] = MaxX
             XLineY[k] = MaxY
             XLineZ[k] = MaxZ
-                
+    
+    # The X line plots
     fig3 = plt.figure(3)
     fig3.set_size_inches(12,12, forward = True)
     fig3.patch.set_facecolor('lightgrey')
     fig3.suptitle('$XLine$' + ' ' + '$Projections$', fontsize = 20)
     plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
-    # making 3D plot
+    
     ax3 = fig3.add_subplot(211)
-    # 500, 180, 250 is inside reconn zone
     ax3.plot(XLineZ, XLineY, linewidth = .5, color = 'b', label = 'Separator Sheet')
     ax3.set_ylabel('Y', rotation = 0)
     ax3.set_xlabel('Z')
@@ -928,7 +1116,6 @@ def XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize):
     ax3.set_title('$XLine$' + ' ' + '$Viewed$' + ' ' + '$Down$' + ' ' + '$X$' + ' ' + '$Axis$')
     
     ax4 = fig3.add_subplot(212)
-    # 500, 180, 250 is inside reconn zone
     ax4.plot(XLineZ, XLineX, linewidth = .5, color = 'b', label = 'Separator Sheet')
     ax4.set_ylabel('X', rotation = 0)
     ax4.set_xlabel('Z')
@@ -937,9 +1124,8 @@ def XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize):
     ax4.set_title('$XLine$' + ' ' + '$Viewed$' + ' ' + '$Down$' + ' ' + '$Y$' + ' ' + '$Axis$')
     
 
-        
-
 def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
+    # Checking validity of arguments
     try:
         Bx = B[0]
         By = B[1]
@@ -959,20 +1145,29 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
             print('invalid arguments')
             return 0
             
-    print('Loading Separator...')    
+    # Ensuring these values are integers
+    Xsize = int(Xsize)
+    Ysize = int(Ysize)
+    Zsize = int(Zsize)
+    
+    print('Loading Separator...')
+    # Loading the separator data
     X = np.load(PathSepX)
     Y = np.load(PathSepY)
     Z = np.load(PathSepZ)
     print('Loaded \n')
     
+    # Plotting the basic separator projections which can be done quickly 
+    # since no colormeshes are involved
     print('Generating Figures...')
+    # The figure
     fig1 = plt.figure(1)
     fig1.set_size_inches(5, 10, forward = True)
     plt.subplots_adjust(left = .1, bottom = .06, right = .9, top = .86, wspace = None, hspace = .45)
     fig1.suptitle('$Separator$' + ' ' + '$Projections$', fontsize = 20)
     fig1.patch.set_facecolor('lightgrey')
-    # making 3D plot
     
+    # The plots
     ax = fig1.add_subplot(311)
     ax.set_title('$Down$' + ' ' + '$Z$' + ' ' + '$axis$', fontsize = 14)
     ax.plot(X,Y, linestyle = 'none', marker = '.', markersize = .01, color = 'k')
@@ -1012,38 +1207,48 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
     ax3.yaxis.set_label_position('right')
     ax3.yaxis.labelpad = 10
     
+    # If B is included, plots the separator in 3D over colormeshes of |B|as 
+    # well as a large projection of the separator down the Z axis over a 
+    # colormesh of |B|, this takes extra time
     try:
         Bz[0,0,0]
         
         print('\n'+'Calculating |B|...')
-        Bm0 = np.zeros(4)
-        Bm1 = np.zeros(4)
-        Bm2 = np.zeros(4)
-        Bm3 = np.zeros(4)
+        
+        # Only calculates |B| for the 6 planes which are plotted to
+        # avoid excessive time required to find |B| for the entire sim.
         Bm0 = np.sqrt(Bx[0,:,:]**2 + By[0,:,:]**2 + Bz[0,:,:]**2)
         Bm1 = np.sqrt(Bx[:,0,:]**2 + By[:,0,:]**2 + Bz[:,0,:]**2)
         Bm2 = np.sqrt(Bx[:,:,0]**2 + By[:,:,0]**2 + Bz[:,:,0]**2)
-        Bm3 = np.sqrt(Bx[:,:,int(Zsize/2)]**2 + By[:,:,int(Zsize/2)]**2 + Bz[:,:,int(Zsize/2)]**2)
-
+        Bm3 = np.sqrt(Bx[:,:,Zsize / 2]**2 + By[:,:,Zsize / 2]**2 + Bz[:,:,Zsize / 2]**2)
+        
+        # Min and Max values for normalizing colormaps
         MIN = Bm2.min()
         MAX = Bm2.max()
         
         print('\n'+'Making Colormeshs...')
+        # Arrays for making meshgrids
         Xval = np.linspace(0, Xsize - 1, Xsize)
         Yval = np.linspace(0, Ysize - 1, Ysize)
         Zval = np.linspace(0, Zsize - 1, Zsize)
     
+        # Meshgrids to be plotted in 3D after applying the |B| colormap
+        # allows plotting 2D colormesh in 3D
         XZ, YZ = np.meshgrid(Xval, Yval)
+        # Field lines actually follow the transpose of the data
         XZ = XZ.T
         YZ = YZ.T
+        # This meshgrid will be on the plane Z = 0
         ZZ = np.zeros((Xsize, Ysize))
         cmp = plt.cm.bwr
+        # Normalizing the colomap
         norm = mpt.colors.Normalize(vmin = MIN, vmax = MAX)
         colorsZ = cmp(norm(Bm2))
         
         XY, ZY = np.meshgrid(Xval, Zval)
         XY = XY.T
         ZY = ZY.T
+        # This meshgrid will be on the plane Y = 0
         YY = np.zeros((Xsize, Zsize))
         cmp = plt.cm.bwr
         norm = mpt.colors.Normalize(vmin = MIN, vmax = MAX)
@@ -1052,21 +1257,24 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
         YX, ZX = np.meshgrid(Yval, Zval)
         ZX = ZX.T
         YX = YX.T
+        # This meshgrid will be on the plane X = 0
         XX = np.zeros((Zsize, Ysize))
         cmp = plt.cm.bwr
         norm = mpt.colors.Normalize(vmin = MIN, vmax = MAX)
-        colorsX = cmp(norm(Bm0))    
+        colorsX = cmp(norm(Bm0))     
         
+        # The 3D plot
         fig2 = plt.figure(2)
         fig2.set_size_inches(10, 10, forward = True)
         fig2.patch.set_facecolor('lightgrey')
         fig2.suptitle('$Separator$' + ' ' + '$3D$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$', fontsize = 20, y = .95)
-        # making 3D plot
-        ax4 = fig2.add_subplot(111, projection = '3d')
-        # 500, 180, 250 is inside reconn zone
-        
+
+        ax4 = fig2.add_subplot(111, projection = '3d')        
         ax4.plot(Z, X, Y, linestyle = 'none', marker = '.', markersize = .01, color = 'k')
         ax4.view_init(elev = 10, azim = 10)
+        # rstride and cstride may be adjusted to change the resolution of
+        # the 3D colormeshs, and the plotting speed, 10 means every 10th point,
+        # 5 every 5th etc.
         ax4.plot_surface(ZZ, XZ, YZ, facecolors = colorsZ, shade = False, rstride = 10, cstride = 10)
         ax4.plot_surface(ZY, XY, YY, facecolors = colorsY, shade = False, rstride = 10, cstride = 10)
         ax4.plot_surface(ZX, XX, YX, facecolors = colorsX, shade = False, rstride = 10, cstride = 10) 
@@ -1079,15 +1287,16 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
         
         fig2.tight_layout()
         
+        # The colormesh projection plot
         fig3 = plt.figure(3)
         fig3.set_size_inches(18, 9, forward = True)
         plt.subplots_adjust(left = .1, bottom = .06, right = .9, top = .86, wspace = None, hspace = .45)
         fig3.suptitle('$Separator$' + ' ' + '$Projection$', fontsize = 20)
         fig3.patch.set_facecolor('lightgrey')
-        # making 3D plot
-
-        xx = np.linspace(0, Xsize, num = Xsize)
-        yy = np.linspace(0, Ysize, num = Ysize)
+        
+        # Arrays for plotting
+        xx = np.linspace(0, Xsize - 1, Xsize)
+        yy = np.linspace(0, Ysize - 1, Ysize)
         
         ax5 = fig3.add_subplot(111)
         ax5.set_title('$Over$' + ' ' + '$|$' + '$B$' + '$|$' + ' ' + '$with$' + ' ' + '$Z$' + ' ' + '$=$' + ' ' + str(int(Zsize/2)), fontsize = 14)
@@ -1107,11 +1316,12 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
         
     print('\n' + 'Plotting...')
     plt.show()
+    
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
+# TESTS
 
-
-# 2D TESTS
+# 2D
 
 #d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
 #Bx = d['by']
@@ -1119,7 +1329,9 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
 
 #TraceField([Bx, By], [2000, 2000])
 
-# 3D TESTS
+
+# 3D
+
 print('Loading')
 BX =  np.load('/scratch-fast/asym030/bx.npy')
 BY =  np.load('/scratch-fast/asym030/by.npy')
@@ -1130,23 +1342,21 @@ BZ =  np.load('/scratch-fast/asym030/bz.npy')
 #EZ =  np.load('/scratch-fast/asym030/ez.npy')
 print('Loaded')
 
-SepY0 = np.load('LowerSepY.npy')[0]
-TraceField([BX, BY, BZ], [0, SepY0, 0], 2, 1.5)
+#SepY0 = np.load('LowerSepY.npy')[0]
+#TraceField([BX, BY, BZ], [0, SepY0, 0], 2, 1.5)
 #TraceField([BX, BY, BZ], [500, 200, 500], .5, 100, ['TraceX6.npy', 'TraceY6.npy', 'TraceZ6.npy'])
 #TraceField([BX, BY, BZ, EX, EY, EZ], [1000, 400, 500], .5, 100)
+TraceField([BX, BY, BZ], [1000, 400, 500], .5, 100)
 
-#SeparatorSlice('UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
+#SeparatorSlice('LowerSepX.npy', 'LowerSepY.npy', 'LowerSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
 #SeparatorSlice('UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 2048, 1024, 1024)
 
-#SeparatorLoader('UpperSepX.npy','UpperSepY.npy','UpperSepZ.npy', 2048, 1024, 1024)
-# CAREFUL don't run these one after another plots will mix
-#SeparatorLoader('UpperSepX.npy','UpperSepY.npy','UpperSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
+#SeparatorLoader('LowerSepX.npy','LowerSepY.npy','LowerSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
 
 # 318 for Upper
 # 150 for Lower
-#MapSeparator(['SepX8.npy', 'SepY8.npy', 'SepZ8.npy'], [BX, BY, BZ], 318, 'Upper', 1)
+#MapSeparator(['SepX8.npy', 'SepY8.npy', 'SepZ8.npy'], [BX, BY, BZ], 318, 'Upper', 8)
+#MapSeparator(['SepX9.npy', 'SepY9.npy', 'SepZ9.npy'], [BX, BY, BZ], 150, 'Lower', 8)
 
-
-# TODO
-# add ds and passes to images
+#SeparatorLoader('SepX8.npy','SepY8.npy','SepZ8.npy', 2048, 1024, 1024)
 
