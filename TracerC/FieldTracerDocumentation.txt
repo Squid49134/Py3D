@@ -48,6 +48,8 @@ User Methods:
         - N is the integer resolution, 1 represents doing every point in the simulation
             2 would be every other point, 4 every fourth point and so on
         - Using too large an N may cause instability
+        - WARNING: Can only map separator sheets which do not cross boundaries of simulation,
+            attempting to map separator which does cross boundary will cause segmentation fault.
         OPTIONS - 
             MapSeparator(['SepX.npy', 'SepY.npy', 'SepZ.npy'], [Bx, By, Bz], Ystart, 'Upper', N = 1):
                 Finds the upper separator sheet, and saves the data
