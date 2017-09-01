@@ -14,6 +14,9 @@ from numpy.ctypeslib import ndpointer
 
 __all__ = ['TraceField', 'MapSeparator', 'SeparatorLoader', 'SeparatorSlice']
 
+# Constant for real space indexing
+SIMds = .025
+
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
 # LINKING THE SHARED C LIBRARY
@@ -61,14 +64,20 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
                 assert(B[3].shape == B[4].shape == B[5].shape == B[0].shape)
             B[0][0,0,0] * B[1][0,0,0] * B[2][0,0,0]
             assert(B[0].shape == B[1].shape == B[2].shape)
-            assert(0 <= Start[0] <= B[0].shape[0] - 1)
-            assert(0 <= Start[1] <= B[0].shape[1] - 1)
-            assert(0 <= Start[2] <= B[0].shape[2] - 1)
+            assert(0 <= Start[0]/SIMds <= B[0].shape[0] - 1)
+            assert(0 <= Start[1]/SIMds <= B[0].shape[1] - 1)
+            assert(0 <= Start[2]/SIMds <= B[0].shape[2] - 1)
             float(passes)
             float(ds)
         except:
             print('invalid arguments')
             return 0
+            
+        # Converting to grid space
+        ds = ds / SIMds
+        Start[0] = Start[0]/SIMds
+        Start[1] = Start[1]/SIMds
+        Start[2] = Start[2]/SIMds
             
         # Determining the number of steps
         if B[0].shape[0] >= B[0].shape[1] and B[0].shape[0] >= B[0].shape[2]:
@@ -104,9 +113,9 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
                         Start[2] = abs(float(raw_input('Enter Z value of starting position: \n')))
                         ds =  abs(float(raw_input('Enter ds value: \n')))
                         passes = abs(float(raw_input('Enter number of passes: \n')))
-                        assert(0 <= Start[0] <= B[0].shape[0] - 1)
-                        assert(0 <= Start[1] <= B[0].shape[1] - 1)
-                        assert(0 <= Start[2] <= B[0].shape[2] - 1)
+                        assert(0 <= Start[0]/SIMds <= B[0].shape[0] - 1)
+                        assert(0 <= Start[1]/SIMds <= B[0].shape[1] - 1)
+                        assert(0 <= Start[2]/SIMds <= B[0].shape[2] - 1)
                         break
                     except:
                         print('invalid input try again \n')
@@ -124,16 +133,20 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
     # 2D
     else:
         # ds is set in 2D for the purpose of checking for line completion
+        # ds IS IN GRID SPACE
         ds2D = .1
         # Checking validity of arguments
         try:
             B[0][0,0] * B[1][0,0]
             assert(B[0].shape == B[1].shape)
-            assert(0 <= Start[0] <= B[0].shape[0] - 1)
-            assert(0 <= Start[1] <= B[0].shape[1] - 1)
+            assert(0 <= Start[0]/SIMds <= B[0].shape[0] - 1)
+            assert(0 <= Start[1]/SIMds <= B[0].shape[1] - 1)
         except:
             print('invalid arguments')
             return 0
+            
+        Start[0] = Start[0]/SIMds
+        Start[1] = Start[1]/SIMds
         
         # The number of steps is also set in 2D for checking line completion
         if B[0].shape[0] >= B[0].shape[1]:
@@ -158,6 +171,8 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
                     try:
                         Start[0] = abs(float(raw_input('\n' + 'Enter X value of starting position: \n')))
                         Start[1] = abs(float(raw_input('Enter Y value of starting position: \n')))
+                        assert(0 <= Start[0]/SIMds <= B[0].shape[0] - 1)
+                        assert(0 <= Start[1]/SIMds <= B[0].shape[1] - 1)
                         break
                     except:
                         print('invalid input try again \n')
@@ -257,7 +272,7 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
     fig1 = plt.figure(1)
     fig1.set_size_inches(5, 10, forward = True)
     plt.subplots_adjust(left = .1, bottom = .06, right = .9, top = .86, wspace = None, hspace = .45)
-    fig1.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 18, y = .99)
+    fig1.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$Projections$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit*SIMds) + ',' + str(Yinit*SIMds) + ',' + str(Zinit*SIMds) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds*SIMds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 18, y = .99)
     fig1.patch.set_facecolor('lightgrey')
     
     # The plots
@@ -300,6 +315,60 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
     ax3.yaxis.set_label_position('right')
     ax3.yaxis.labelpad = 10
     
+    # Forcing matplot to generate the axes tick labels
+    fig1.canvas.draw()
+    
+    # Returns an list of tick label objects
+    LabelList = ax.get_xticklabels()
+    # Adjusting the tick labels
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    # Resetting the tick labels
+    ax.set_xticklabels(LabelList)
+    
+    LabelList = ax2.get_xticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax2.set_xticklabels(LabelList)
+    
+    LabelList = ax3.get_xticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax3.set_xticklabels(LabelList)
+    
+    LabelList = ax.get_yticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax.set_yticklabels(LabelList)
+    
+    LabelList = ax2.get_yticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax2.set_yticklabels(LabelList)
+    
+    LabelList = ax3.get_yticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax3.set_yticklabels(LabelList)
+    
     # If E is included plot Einterp per step
     if (len(B) == 6):
         fig4 = plt.figure(4)
@@ -310,11 +379,10 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
         
         ax4 = fig4.add_subplot(111)
         ax4.plot(Xvals, EI, linewidth = .5, color = 'g')
-        ax4.set_ylabel('Y', rotation = 0)
-        ax4.set_xlabel('X')
+        ax4.set_xlabel('Steps')
         ax4.yaxis.set_label_position('right')
         ax4.yaxis.labelpad = 10
-        ax4.set_title('$E$' + ' ' + '$Interpolated$' + ' ' + '$Per$' + ' ' + '$Step$' + ' ' + '$For$' + ' ' + str(float(Steps)*ds / B[0].shape[0]) + ' ' + '$Passes$' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Einterp$' + ' ' + '$Total$' + ' ' + '$=$' + ' ' + str(interp), fontsize=18)
+        ax4.set_title('$E$' + ' ' + '$Interpolated$' + ' ' + '$Per$' + ' ' + '$Step$' + ' ' + '$For$' + ' ' + str(float(Steps)*ds / B[0].shape[0]) + ' ' + '$Passes$' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds*SIMds) + '$,$' + ' ' + ' ' + '$Einterp$' + ' ' + '$Total$' + ' ' + '$=$' + ' ' + str(interp), fontsize=18)
 
     # Checking if the user would like to take extra time creating 3D and
     # puncture plots which require developing colormeshs
@@ -332,9 +400,9 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
                 Bm0 = np.sqrt(B[0][0,:,:]**2 + B[1][0,:,:]**2 + B[2][0,:,:]**2)
                 Bm1 = np.sqrt(B[0][:,0,:]**2 + B[1][:,0,:]**2 + B[2][:,0,:]**2)
                 Bm2 = np.sqrt(B[0][:,:,0]**2 + B[1][:,:,0]**2 + B[2][:,:,0]**2)
-                Bm3 = np.sqrt(B[0][Xinit,:,:]**2 + B[1][Xinit,:,:]**2 + B[2][Xinit,:,:]**2)
-                Bm4 = np.sqrt(B[0][:,Yinit,:]**2 + B[1][:,Yinit,:]**2 + B[2][:,Yinit,:]**2)
-                Bm5 = np.sqrt(B[0][:,:,Zinit]**2 + B[1][:,:,Zinit]**2 + B[2][:,:,Zinit]**2)
+                Bm3 = np.sqrt(B[0][int(Xinit),:,:]**2 + B[1][int(Xinit),:,:]**2 + B[2][int(Xinit),:,:]**2)
+                Bm4 = np.sqrt(B[0][:,int(Yinit),:]**2 + B[1][:,int(Yinit),:]**2 + B[2][:,int(Yinit),:]**2)
+                Bm5 = np.sqrt(B[0][:,:,int(Zinit)]**2 + B[1][:,:,int(Zinit)]**2 + B[2][:,:,int(Zinit)]**2)
             
             # Min and Max values for normalizing colormaps
             MIN = Bm2.min()
@@ -381,7 +449,7 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
             fig2 = plt.figure(2)
             fig2.set_size_inches(10, 10, forward = True)
             fig2.patch.set_facecolor('lightgrey')
-            fig2.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$3D$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 20, y = .96)
+            fig2.suptitle('$Line$' + ' ' + '$Trace$' + ' ' + '$3D$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit*SIMds) + ',' + str(Yinit*SIMds) + ',' + str(Zinit*SIMds) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds*SIMds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 20, y = .96)
             
             ax4 = fig2.add_subplot(111, projection = '3d')
             ax4.plot(Line_Z, Line_X, Line_Y, linestyle = 'none', marker = '.', markersize = .01, color = 'k')
@@ -398,6 +466,36 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
             ax4.set_xlabel('Z')
             ax4.set_ylabel('X')
             ax4.set_zlabel('Y')   
+            
+            # Forcing matplot to generate the axes tick labels
+            fig2.canvas.draw()
+            
+            # Returns an list of tick label objects
+            LabelList = ax4.get_xticklabels()
+            # Adjusting the tick labels
+            for LabelObj in LabelList:
+                try: 
+                    LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                except:
+                    1
+            # Resetting the tick labels
+            ax4.set_xticklabels(LabelList)
+            
+            LabelList = ax4.get_yticklabels()
+            for LabelObj in LabelList:
+                try: 
+                    LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                except:
+                    1
+            ax4.set_yticklabels(LabelList)
+            
+            LabelList = ax4.get_zticklabels()
+            for LabelObj in LabelList:
+                try: 
+                    LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                except:
+                    1
+            ax4.set_zticklabels(LabelList)
             
             fig2.tight_layout()
             
@@ -427,7 +525,7 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
             # The puncture plots
             fig3 = plt.figure(3)
             fig3.set_size_inches(5, 10, forward = True)
-            fig3.suptitle('$Puncture$' + ' ' + '$Plots$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit) + ',' + str(Yinit) + ',' + str(Zinit) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 18, y = .99)
+            fig3.suptitle('$Puncture$' + ' ' + '$Plots$' + '\n' + '$Started$' + ' ' + '(' + str(Xinit*SIMds) + ',' + str(Yinit*SIMds) + ',' + str(Zinit*SIMds) + ')' + '\n' + '$ds$' + ' ' + '$=$' + ' ' + str(ds*SIMds) + '$,$' + ' ' + ' ' + '$Passes$' + ' ' + '$=$' + ' ' + str(float(Steps)*ds/B[0].shape[0]), fontsize = 18, y = .99)
             plt.subplots_adjust(left = .1, bottom = .06, right = .9, top = .86, wspace = None, hspace = .45)
             fig3.patch.set_facecolor('lightgrey')
             
@@ -437,7 +535,7 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
             ax5.xaxis.set_minor_locator(AutoMinorLocator(4))
             ax5.yaxis.set_minor_locator(AutoMinorLocator(4))
             ax5.set_aspect('equal')
-            ax5.set_title('$Slice$' + ' ' + '$Z$' + '$=$' + str(Zinit), fontsize = 14)
+            ax5.set_title('$Slice$' + ' ' + '$Z$' + '$=$' + str(Zinit*SIMds), fontsize = 14)
             ax5.locator_params(nbins = 6, axis = 'y')
             ax5.locator_params(nbins = 8, axis = 'x')
             ax5.set_ylim([0, Ysize])
@@ -453,7 +551,7 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
             ax6.xaxis.set_minor_locator(AutoMinorLocator(4))
             ax6.yaxis.set_minor_locator(AutoMinorLocator(4))
             ax6.set_aspect('equal')
-            ax6.set_title('$Slice$' + ' ' + '$Y$' + '$=$' + str(Yinit), fontsize = 14)
+            ax6.set_title('$Slice$' + ' ' + '$Y$' + '$=$' + str(Yinit*SIMds), fontsize = 14)
             ax6.locator_params(nbins = 6, axis = 'y')
             ax6.locator_params(nbins = 8, axis = 'x')
             ax6.set_ylim([0, Zsize])
@@ -469,7 +567,7 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
             ax7.xaxis.set_minor_locator(AutoMinorLocator(4))
             ax7.yaxis.set_minor_locator(AutoMinorLocator(4))
             ax7.set_aspect('equal')
-            ax7.set_title('$Slice$' + ' ' + '$X$' + '$=$' + str(Xinit), fontsize = 14)
+            ax7.set_title('$Slice$' + ' ' + '$X$' + '$=$' + str(Xinit*SIMds), fontsize = 14)
             ax7.locator_params(nbins = 6, axis = 'y')
             ax7.locator_params(nbins = 8, axis = 'x')
             ax7.set_ylim([0, Zsize])
@@ -478,6 +576,61 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
             ax7.set_xlabel('Y')
             ax7.yaxis.set_label_position('right')
             ax7.yaxis.labelpad = 10
+            
+            # Forcing matplot to generate the axes tick labels
+            fig3.canvas.draw()
+            
+            # Returns an list of tick label objects
+            LabelList = ax5.get_xticklabels()
+            # Adjusting the tick labels
+            for LabelObj in LabelList:
+                try: 
+                    LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                except:
+                    1
+            # Resetting the tick labels
+            ax5.set_xticklabels(LabelList)
+            
+            LabelList = ax6.get_xticklabels()
+            for LabelObj in LabelList:
+                try: 
+                    LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                except:
+                    1
+            ax6.set_xticklabels(LabelList)
+            
+            LabelList = ax7.get_xticklabels()
+            for LabelObj in LabelList:
+                try: 
+                    LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                except:
+                    1
+            ax7.set_xticklabels(LabelList)
+            
+            LabelList = ax5.get_yticklabels()
+            for LabelObj in LabelList:
+                try: 
+                    LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                except:
+                    1
+            ax5.set_yticklabels(LabelList)
+            
+            LabelList = ax6.get_yticklabels()
+            for LabelObj in LabelList:
+                try: 
+                    LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                except:
+                    1
+            ax6.set_yticklabels(LabelList)
+            
+            LabelList = ax7.get_yticklabels()
+            for LabelObj in LabelList:
+                try: 
+                    LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                except:
+                    1
+            ax7.set_yticklabels(LabelList)            
+            
             break
         elif ((ans == 'N') or (ans == 'n')):
             break
@@ -543,11 +696,33 @@ def FieldLine_2D(Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
     print('\n' + 'Calculating |B|...')
     Bm = np.sqrt(B1**2 + B2**2)
 
-    print('\n' + 'plotting...')
+    print('\n' + 'Plotting...')
     # Plotting |B| colormesh
     ax.pcolormesh(Bm.T, vmin = -.1)            
     ax.plot(Line_X,Line_Y, linestyle = 'none', marker = '.', markersize = .01, color='black')
-    ax.set_title('$2D$' + ' ' + '$Line$' + ' ' + '$Trace$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit), fontsize=20)
+    ax.set_title('$2D$' + ' ' + '$Line$' + ' ' + '$Trace$' + ' ' + '$Over$' + ' ' + '$|$' + '$B$' + '$|$' + '\n' + '$Started$' + ' ' + '$at$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(Xinit*SIMds) + ', ' + '$Y$' + ' ' + '$=$' + ' ' + str(Yinit*SIMds), fontsize=20)
+    
+    # Forcing matplot to generate the axes tick labels
+    fig1.canvas.draw()
+    
+    # Returns an list of tick label objects
+    LabelList = ax.get_xticklabels()
+    # Adjusting the tick labels
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    # Resetting the tick labels
+    ax.set_xticklabels(LabelList)
+    
+    LabelList = ax.get_yticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax.set_yticklabels(LabelList)
     
     plt.show()                
         
@@ -594,6 +769,7 @@ def MapSeparator(Saves, B, Ystart, UPorLOW, N = 1):
     # By trial and error it was determined that ds must be <= 3 to avoid line
     # drifitng which will cause significant erros near a separator sheet, this
     # may relate to the debye length of the simulation
+    # ds IS IN GRID SPACE
     ds = 3
     # Any field line which reconnects will do so within 1.5 passes
     passes = 1.5
@@ -608,7 +784,7 @@ def MapSeparator(Saves, B, Ystart, UPorLOW, N = 1):
         assert(int(N))
         assert(float(Ystart))
         assert(1 <= N < (B[0].shape[0] / 30))
-        assert(0 < Ystart < B[0].shape[1])
+        assert(0 < Ystart/SIMds < B[0].shape[1])
         assert((UPorLOW == 'Upper') or (UPorLOW == 'Lower'))
         
     except:
@@ -633,7 +809,10 @@ def MapSeparator(Saves, B, Ystart, UPorLOW, N = 1):
         return 0
     except:
         1
-
+    
+    # Converting to grid space
+    Ystart = Ystart/SIMds
+    
     # Arrays for separator data points
     SeparatorX = np.zeros((B[0].shape[0] / N) * (B[0].shape[2] / N))
     SeparatorY = np.zeros((B[0].shape[0] / N) * (B[0].shape[2] / N))
@@ -748,23 +927,24 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
         Bz = B[2]
         Bx[0,0,0] * By[0,0,0] * Bz[0,0,0]
         assert(Bx.shape == By.shape == Bz.shape)
+        assert(Bx.shape == (int(Xsize/SIMds), int(Ysize/SIMds), int(Zsize/SIMds)))
         assert(int(Xsize))
         assert(int(Ysize))
         assert(int(Zsize))
     except:
         try:
             assert(B == None)
-            assert(int(Xsize))
-            assert(int(Ysize))
-            assert(int(Zsize))
+            assert(int(Xsize/SIMds))
+            assert(int(Ysize/SIMds))
+            assert(int(Zsize/SIMds))
         except:
             print('invalid arguments')
             return 0
     
-    # Ensuring these are integers
-    Xsize = int(Xsize)
-    Ysize = int(Ysize)
-    Zsize = int(Zsize)
+    # Ensuring these are integers and converting to grid space
+    Xsize = int(Xsize/SIMds)
+    Ysize = int(Ysize/SIMds)
+    Zsize = int(Zsize/SIMds)
     
     # Checking if the user would like to plot slices along the X or the Z axis
     # A slice along the Y axis is not useful
@@ -778,11 +958,13 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                     try:
                         # The value to slice
                         X = int(raw_input('Enter X value for slice: \n'))
-                        assert(0 <= X < Xsize)
+                        assert(0 <= int(X/SIMds) < Xsize)
                         break;
                     except:
                         print('invalid X try again. \n')
                         continue
+                
+                X = int(X / SIMds)                
                 
                 print('\n' + 'Loading')
                 # loading the separator data
@@ -817,7 +999,28 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                 ax.set_xlabel('Z')
                 ax.yaxis.set_label_position('right')
                 ax.yaxis.labelpad = 10
-                ax.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(X), fontsize=20)
+                ax.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(X*SIMds), fontsize=20)
+                
+                fig.canvas.draw()
+        
+                # Returns an list of tick label objects
+                LabelList = ax.get_xticklabels()
+                # Adjusting the tick labels
+                for LabelObj in LabelList:
+                    try: 
+                        LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                    except:
+                        1
+                # Resetting the tick labels
+                ax.set_xticklabels(LabelList)
+                
+                LabelList = ax.get_yticklabels()
+                for LabelObj in LabelList:
+                    try:
+                        LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                    except:
+                        1
+                ax.set_yticklabels(LabelList)
                 
                 # If B is included, plots a puncture plot of the slice by
                 # tracing a line started right above and another right below
@@ -837,7 +1040,7 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                     ax2.set_xlabel('Z')
                     ax2.yaxis.set_label_position('right')
                     ax2.yaxis.labelpad = 10
-                    ax2.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Puncture$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(X), fontsize=20)
+                    ax2.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Puncture$' + ' ' + '$X$' + ' ' + '$=$' + ' ' + str(X*SIMds), fontsize=20)
                     
                     # Both lines are traced for 100 passes
                     Steps = 1000*Bx.shape[0]
@@ -851,6 +1054,27 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                     ax2.scatter(UpperPunct[0], UpperPunct[1], s = 3, c = 'r', label = 'Line Started Above')
                     ax2.scatter(LowerPunct[0], LowerPunct[1], s = 3, c = 'b', label = 'Line Started Below')
                     ax2.legend(loc='center right', fontsize = 'large')
+                    
+                    fig2.canvas.draw()
+        
+                    # Returns an list of tick label objects
+                    LabelList = ax2.get_xticklabels()
+                    # Adjusting the tick labels
+                    for LabelObj in LabelList:
+                        try: 
+                            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                        except:
+                            1
+                    # Resetting the tick labels
+                    ax2.set_xticklabels(LabelList)
+                    
+                    LabelList = ax2.get_yticklabels()
+                    for LabelObj in LabelList:
+                        try: 
+                            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                        except:
+                            1
+                    ax2.set_yticklabels(LabelList)
                                    
                 except:
                     1
@@ -880,11 +1104,13 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                 while True:
                     try:
                         Z = int(raw_input('Enter Z value for slice: \n'))
-                        assert(0 <= Z < Zsize)
+                        assert(0 <= int(Z/SIMds) < Zsize)
                         break
                     except:
                         print('invalid Z try again. \n')
                         continue
+                
+                Z = int(Z / SIMds)                
                 
                 # Loading the separator data
                 print('\n' + 'Loading')
@@ -919,7 +1145,28 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                 ax.set_xlabel('X')
                 ax.yaxis.set_label_position('right')
                 ax.yaxis.labelpad = 10
-                ax.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Z$' + ' ' + '$=$' + ' ' + str(Z), fontsize=20)
+                ax.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Z$' + ' ' + '$=$' + ' ' + str(Z*SIMds), fontsize=20)
+                
+                fig.canvas.draw()
+        
+                # Returns an list of tick label objects
+                LabelList = ax.get_xticklabels()
+                # Adjusting the tick labels
+                for LabelObj in LabelList:
+                    try: 
+                        LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                    except:
+                        1
+                # Resetting the tick labels
+                ax.set_xticklabels(LabelList)
+                
+                LabelList = ax.get_yticklabels()
+                for LabelObj in LabelList:
+                    try: 
+                        LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                    except:
+                        1
+                ax.set_yticklabels(LabelList)                
                 
                 # If B is included, plots a puncture plot of the slice by
                 # tracing a line started right above and another right below
@@ -939,7 +1186,7 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                     ax2.set_xlabel('X')
                     ax2.yaxis.set_label_position('right')
                     ax2.yaxis.labelpad = 10
-                    ax2.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Puncture$' + ' ' + '$Z$' + ' ' + '$=$' + ' ' + str(Z), fontsize=20)
+                    ax2.set_title('$Separator$' + ' ' + '$Sheet$' + ' ' + '$Slice$' + ' ' + '$Puncture$' + ' ' + '$Z$' + ' ' + '$=$' + ' ' + str(Z*SIMds), fontsize=20)
                     
                     # Both lines are traced for 100 passes
                     Steps = 1000*Bx.shape[0]
@@ -953,6 +1200,27 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                     ax2.scatter(UpperPunct[0], UpperPunct[1], s = 3, c = 'r', label = 'Line Started Above')
                     ax2.scatter(LowerPunct[0], LowerPunct[1], s = 3, c = 'b', label = 'Line Started Below')
                     ax2.legend(loc='center right', fontsize = 'large')
+                    
+                    fig2.canvas.draw()
+        
+                    # Returns an list of tick label objects
+                    LabelList = ax2.get_xticklabels()
+                    # Adjusting the tick labels
+                    for LabelObj in LabelList:
+                        try: 
+                            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                        except:
+                            1
+                    # Resetting the tick labels
+                    ax2.set_xticklabels(LabelList)
+                    
+                    LabelList = ax2.get_yticklabels()
+                    for LabelObj in LabelList:
+                        try: 
+                            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+                        except:
+                            1
+                    ax2.set_yticklabels(LabelList)                    
                     
                 except:
                     1
@@ -1102,10 +1370,10 @@ def XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize):
     
     # The X line plots
     fig3 = plt.figure(3)
-    fig3.set_size_inches(12,12, forward = True)
+    fig3.set_size_inches(14,12, forward = True)
     fig3.patch.set_facecolor('lightgrey')
     fig3.suptitle('$XLine$' + ' ' + '$Projections$', fontsize = 20)
-    plt.subplots_adjust(left = .05, bottom = .1, right = .95, top = .9)
+    plt.subplots_adjust(left = .08, bottom = .1, right = .92, top = .9, hspace = .3)
     
     ax3 = fig3.add_subplot(211)
     ax3.plot(XLineZ, XLineY, linewidth = .5, color = 'b', label = 'Separator Sheet')
@@ -1123,6 +1391,43 @@ def XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize):
     ax4.yaxis.labelpad = 10
     ax4.set_title('$XLine$' + ' ' + '$Viewed$' + ' ' + '$Down$' + ' ' + '$Y$' + ' ' + '$Axis$')
     
+    fig3.canvas.draw()
+        
+    # Returns an list of tick label objects
+    LabelList = ax3.get_xticklabels()
+    # Adjusting the tick labels
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    # Resetting the tick labels
+    ax3.set_xticklabels(LabelList)
+    
+    LabelList = ax3.get_yticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax3.set_yticklabels(LabelList)
+    
+    LabelList = ax4.get_xticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax4.set_xticklabels(LabelList)
+    
+    LabelList = ax4.get_yticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax4.set_yticklabels(LabelList)
+    
 
 def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
     # Checking validity of arguments
@@ -1132,23 +1437,25 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
         Bz = B[2]
         Bx[0,0,0] * By[0,0,0] * Bz[0,0,0]
         assert(Bx.shape == By.shape == Bz.shape)
-        assert(int(Xsize))
-        assert(int(Ysize))
-        assert(int(Zsize))
+        assert(Bx.shape == (int(Xsize/SIMds), int(Ysize/SIMds), int(Zsize/SIMds)))
+        assert(int(Xsize/SIMds))
+        assert(int(Ysize/SIMds))
+        assert(int(Zsize/SIMds))
     except:
+        # If B = None the first check will throw an error
         try:
             assert(B == None)
-            assert(int(Xsize))
-            assert(int(Ysize))
-            assert(int(Zsize))
+            assert(int(Xsize/SIMds))
+            assert(int(Ysize/SIMds))
+            assert(int(Zsize/SIMds))
         except:
             print('invalid arguments')
             return 0
             
-    # Ensuring these values are integers
-    Xsize = int(Xsize)
-    Ysize = int(Ysize)
-    Zsize = int(Zsize)
+    # Ensuring these values are integers and converting to grid space
+    Xsize = int(Xsize/SIMds)
+    Ysize = int(Ysize/SIMds)
+    Zsize = int(Zsize/SIMds)
     
     print('Loading Separator...')
     # Loading the separator data
@@ -1207,6 +1514,60 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
     ax3.yaxis.set_label_position('right')
     ax3.yaxis.labelpad = 10
     
+    # Forcing matplot to generate the axes tick labels
+    fig1.canvas.draw()
+    
+    # Returns an list of tick label objects
+    LabelList = ax.get_xticklabels()
+    # Adjusting the tick labels
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    # Resetting the tick labels
+    ax.set_xticklabels(LabelList)
+    
+    LabelList = ax2.get_xticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax2.set_xticklabels(LabelList)
+    
+    LabelList = ax3.get_xticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax3.set_xticklabels(LabelList)
+    
+    LabelList = ax.get_yticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax.set_yticklabels(LabelList)
+    
+    LabelList = ax2.get_yticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax2.set_yticklabels(LabelList)
+    
+    LabelList = ax3.get_yticklabels()
+    for LabelObj in LabelList:
+        try: 
+            LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+        except:
+            1
+    ax3.set_yticklabels(LabelList)
+    
     # If B is included, plots the separator in 3D over colormeshes of |B|as 
     # well as a large projection of the separator down the Z axis over a 
     # colormesh of |B|, this takes extra time
@@ -1220,7 +1581,7 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
         Bm0 = np.sqrt(Bx[0,:,:]**2 + By[0,:,:]**2 + Bz[0,:,:]**2)
         Bm1 = np.sqrt(Bx[:,0,:]**2 + By[:,0,:]**2 + Bz[:,0,:]**2)
         Bm2 = np.sqrt(Bx[:,:,0]**2 + By[:,:,0]**2 + Bz[:,:,0]**2)
-        Bm3 = np.sqrt(Bx[:,:,Zsize / 2]**2 + By[:,:,Zsize / 2]**2 + Bz[:,:,Zsize / 2]**2)
+        Bm3 = np.sqrt(Bx[:,:,int(Zsize / 2)]**2 + By[:,:,int(Zsize / 2)]**2 + Bz[:,:,int(Zsize / 2)]**2)
         
         # Min and Max values for normalizing colormaps
         MIN = Bm2.min()
@@ -1283,7 +1644,37 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
         ax4.set_xlim([0, Zsize-1])
         ax4.set_xlabel('Z')
         ax4.set_ylabel('X')
-        ax4.set_zlabel('Y')   
+        ax4.set_zlabel('Y') 
+        
+        # Forcing matplot to generate the axes tick labels
+        fig2.canvas.draw()
+        
+        # Returns an list of tick label objects
+        LabelList = ax4.get_xticklabels()
+        # Adjusting the tick labels
+        for LabelObj in LabelList:
+            try: 
+                LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+            except:
+                1
+        # Resetting the tick labels
+        ax4.set_xticklabels(LabelList)
+        
+        LabelList = ax4.get_yticklabels()
+        for LabelObj in LabelList:
+            try: 
+                LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+            except:
+                1
+        ax4.set_yticklabels(LabelList)
+        
+        LabelList = ax4.get_zticklabels()
+        for LabelObj in LabelList:
+            try: 
+                LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+            except:
+                1
+        ax4.set_zticklabels(LabelList)
         
         fig2.tight_layout()
         
@@ -1299,7 +1690,7 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
         yy = np.linspace(0, Ysize - 1, Ysize)
         
         ax5 = fig3.add_subplot(111)
-        ax5.set_title('$Over$' + ' ' + '$|$' + '$B$' + '$|$' + ' ' + '$with$' + ' ' + '$Z$' + ' ' + '$=$' + ' ' + str(int(Zsize/2)), fontsize = 14)
+        ax5.set_title('$Over$' + ' ' + '$|$' + '$B$' + '$|$' + ' ' + '$with$' + ' ' + '$Z$' + ' ' + '$=$' + ' ' + str(int(Zsize/2)*SIMds), fontsize = 14)
         ax5.pcolormesh(xx, yy, Bm3.T, vmin = MIN, vmax = MAX, cmap=plt.cm.bwr)        
         ax5.plot(X,Y, linestyle = 'none', marker = '.', markersize = .01, color = 'k')
         ax5.set_aspect('equal')
@@ -1311,6 +1702,28 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
         ax5.set_ylim([0,Ysize-1])
         ax5.yaxis.set_label_position('right')
         ax5.yaxis.labelpad = 10
+        
+        fig3.canvas.draw()
+        
+        # Returns an list of tick label objects
+        LabelList = ax5.get_xticklabels()
+        # Adjusting the tick labels
+        for LabelObj in LabelList:
+            try: 
+                LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+            except:
+                1
+        # Resetting the tick labels
+        ax5.set_xticklabels(LabelList)
+        
+        LabelList = ax5.get_yticklabels()
+        for LabelObj in LabelList:
+            try: 
+                LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
+            except:
+                1
+        ax5.set_yticklabels(LabelList)
+        
     except:
         1
         
@@ -1327,7 +1740,7 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
 #Bx = d['by']
 #By = d['bx']
 
-#TraceField([Bx, By], [2000, 2000])
+#TraceField([Bx, By], [50, 50])
 
 
 # 3D
@@ -1343,20 +1756,21 @@ BZ =  np.load('/scratch-fast/asym030/bz.npy')
 print('Loaded')
 
 #SepY0 = np.load('LowerSepY.npy')[0]
-#TraceField([BX, BY, BZ], [0, SepY0, 0], 2, 1.5)
-#TraceField([BX, BY, BZ], [500, 200, 500], .5, 100, ['TraceX6.npy', 'TraceY6.npy', 'TraceZ6.npy'])
-#TraceField([BX, BY, BZ, EX, EY, EZ], [1000, 400, 500], .5, 100)
-TraceField([BX, BY, BZ], [1000, 400, 500], .5, 100)
+#TraceField([BX, BY, BZ], [0, SepY0, 0], .075, 1.5)
+#TraceField([BX, BY, BZ], [12.5, 5, 12.5], .0125, 100, ['TraceX6.npy', 'TraceY6.npy', 'TraceZ6.npy'])
+#TraceField([BX, BY, BZ, EX, EY, EZ], [25.6, 12.8, 12.8], .0125, 100)
+TraceField([BX, BY, BZ], [25.6, 12.8, 12.8], .0025, 100)
 
-#SeparatorSlice('LowerSepX.npy', 'LowerSepY.npy', 'LowerSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
-#SeparatorSlice('UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 2048, 1024, 1024)
+#SeparatorSlice('LowerSepX.npy', 'LowerSepY.npy', 'LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
+#SeparatorSlice('UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 51.2, 25.6, 25.6)
 
-#SeparatorLoader('LowerSepX.npy','LowerSepY.npy','LowerSepZ.npy', 2048, 1024, 1024, [BX, BY, BZ])
+#SeparatorLoader('LowerSepX.npy','LowerSepY.npy','LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
 
-# 318 for Upper
-# 150 for Lower
-#MapSeparator(['SepX8.npy', 'SepY8.npy', 'SepZ8.npy'], [BX, BY, BZ], 318, 'Upper', 8)
-#MapSeparator(['SepX9.npy', 'SepY9.npy', 'SepZ9.npy'], [BX, BY, BZ], 150, 'Lower', 8)
 
-#SeparatorLoader('SepX8.npy','SepY8.npy','SepZ8.npy', 2048, 1024, 1024)
+# 318*.025 for Upper
+# 150*.025 for Lower
+#MapSeparator(['SepX10.npy', 'SepY10.npy', 'SepZ10.npy'], [BX, BY, BZ], 8, 'Upper', 16)
+#MapSeparator(['SepX9.npy', 'SepY9.npy', 'SepZ9.npy'], [BX, BY, BZ], 3.75, 'Lower', 8)
+
+#SeparatorLoader('SepX10.npy','SepY10.npy','SepZ10.npy', 51.2, 25.6, 25.6)
 

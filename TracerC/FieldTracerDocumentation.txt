@@ -9,6 +9,11 @@ compiling shared library:
     gcc -o TracerFunctions.so -shared -fPIC TracerFunctions.c
 
 User Methods:
+*At the top of the TracerWrapper file is a special constant called SIMds, which
+    represents the ds of the simulation (not the trace).  This constant is used for converting 
+    between grid space and real space, and must be adjusted manually.  As a default, 
+    SIMds is set to .025, the ds of the 3D 'asym030' simulation data used to develop the program.
+    As an example, for the 2D 'turb_data' simulation, SIMds should be adjusted to .05
 *all methods are fairly well error proof so the user cannot cause segmentation faults
 *3D plots use colormeshs with low resolution to save time, if desired there
     are options in the code called cstride and rstride which both = 10 and can
@@ -17,8 +22,10 @@ User Methods:
     TraceField(B, Start, ds, passes, Saves = None)
         * recursive allowing user to quickly trace multiple points
         - B is a length 2 or 3 vector of the magnetic field data
-        - Start is a length 2 or 3 vector of the starting location
-        - ds is the differential step, can be any size
+        - Start is a length 2 or 3 vector of the starting location in real space
+        - ds is the differential step in real space, can be any size
+        - WARNING: once inside the method ds is converted to index space, keep this
+            in mind when debugging
         - passes is a rough estimate of the number of passes through the simulation
             can be any size
         - Saves is an optional vector of string path names to save the X, Y and Z data
@@ -39,7 +46,7 @@ User Methods:
         - Saves is a vector of string path names to save the X, Y and Z data
         - Saves names are checked before mapping separator to avoid overwritting data
         - B is a length 3 vector of the magnetic field data
-        - Ystart is a point close to the separator at point [0, Ystart, 0] which
+        - Ystart is a real space point close to the separator at point [0, Ystart, 0] which
             provides a starting point for the mapping.  This is easy to find 
             using the TraceField method and trial and error.
         - UPorLow is a string, either 'Upper' or 'Lower' which tells the program
@@ -50,6 +57,7 @@ User Methods:
         - Using too large an N may cause instability
         - WARNING: Can only map separator sheets which do not cross boundaries of simulation,
             attempting to map separator which does cross boundary will cause segmentation fault.
+            A check could be added to prevent seg faults, but this would significantly impact speed.
         OPTIONS - 
             MapSeparator(['SepX.npy', 'SepY.npy', 'SepZ.npy'], [Bx, By, Bz], Ystart, 'Upper', N = 1):
                 Finds the upper separator sheet, and saves the data
@@ -61,7 +69,7 @@ User Methods:
             is very dependant on the number of passes, this can be seen using
             the separator slice method with B included
         - PathSepX, Y and Z are string path names to the separator data to be loaded
-        - Xsize, Ysize and Zsize are integer sizes of the simulation
+        - Xsize, Ysize and Zsize are the real space sizes of the simulation
         - B is an optional length 3 vector of the magnetic field data
         OPTIONS - 
             SeparatorLoader('SepX.npy', 'SepY.npy', 'SepZ.npy', 2048, 1024, 1024):
@@ -73,7 +81,7 @@ User Methods:
     SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
         * recursive allowing user to quickly slice multiple points
         - PathSepX, Y and Z are string path names to the separator data to be loaded
-        - Xsize, Ysize and Zsize are integer sizes of the simulation
+        - Xsize, Ysize and Zsize are the real space sizes of the simulation
         - B is an optional length 3 vector of the magnetic field data
         OPTIONS - 
             SeparatorSlice('SepX.npy', 'SepY.npy', 'SepZ.npy', 2048, 1024, 1024):
