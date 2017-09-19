@@ -14,9 +14,6 @@ from numpy.ctypeslib import ndpointer
 
 __all__ = ['TraceField', 'MapSeparator', 'SeparatorLoader', 'SeparatorSlice']
 
-# Constant for real space indexing
-SIMds = .025
-
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
 # LINKING THE SHARED C LIBRARY
@@ -33,7 +30,7 @@ _lib = ctypes.cdll.LoadLibrary(pathlib)
 # FIELD TRACING METHODS
 
 # Master 2D and 3D tracing method
-def TraceField(B, Start, ds = None, passes = None, Saves = None):
+def TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None):
     # Checking length of B vector, for 2D, 3D, or 3D with E interp
     try:
         if ((len(B) == 2) or (len(B) == 3) or (len(B) == 6)):
@@ -95,9 +92,9 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
         # The 3D tracing wrapper call either with or without save paths
         try:
             Saves[0]
-            FieldLine_3D(Start[0], Start[1], Start[2], B, Xsize, Ysize, Zsize, ds, int(Steps), Saves)
+            FieldLine_3D(SIMds, Start[0], Start[1], Start[2], B, Xsize, Ysize, Zsize, ds, int(Steps), Saves)
         except:
-            FieldLine_3D(Start[0], Start[1], Start[2], B, Xsize, Ysize, Zsize, ds, int(Steps))
+            FieldLine_3D(SIMds, Start[0], Start[1], Start[2], B, Xsize, Ysize, Zsize, ds, int(Steps))
         
         # Checking if the user wants to trace another point, and if so 
         # takes new input arguments
@@ -121,7 +118,7 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
                         print('invalid input try again \n')
                         continue
                 plt.close('all')
-                TraceField(B, Start, ds, passes)
+                TraceField(SIMds, B, Start, ds, passes)
                 break
             elif cont == 'N' or cont == 'n':
                 print('Finished.')
@@ -159,7 +156,7 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
         Ysize = B[0].shape[1]
         
         # The 2D tracing wrapper call
-        FieldLine_2D(Start[0], Start[1], B[0], B[1], Xsize, Ysize, ds2D, int(Steps))
+        FieldLine_2D(SIMds, Start[0], Start[1], B[0], B[1], Xsize, Ysize, ds2D, int(Steps))
         
         # Checks if the user would like to trace another point, and if so takes
         # new input arguments
@@ -178,7 +175,7 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
                         print('invalid input try again \n')
                         continue
                 plt.close('all')
-                TraceField(B, Start)
+                TraceField(SIMds, B, Start)
                 break
             elif cont == 'N' or cont == 'n':
                 print('Finished.')
@@ -188,7 +185,7 @@ def TraceField(B, Start, ds = None, passes = None, Saves = None):
                 continue
             
 # 3D tracing wrapper and plotter
-def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None):
+def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves = None):
     # Identifying the C tracing function
     func          = _lib.RK4_3D
     func.restype  = int
@@ -389,21 +386,17 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
     while True:
         ans = raw_input('\n' + 'Create 3D and Puncture Plots? Y or N \n')
         if ((ans == 'Y') or (ans == 'y')):
-            try:        
-                Bm[1]
-                print('\n' + '|B| already Calculated')
-            except:
-                print('\n' + 'Calculating |B|...')
-                
-                # Only calculates |B| for the 6 planes which are plotted to
-                # avoid excessive time required to find |B| for the entire sim.
-                Bm0 = np.sqrt(B[0][0,:,:]**2 + B[1][0,:,:]**2 + B[2][0,:,:]**2)
-                Bm1 = np.sqrt(B[0][:,0,:]**2 + B[1][:,0,:]**2 + B[2][:,0,:]**2)
-                Bm2 = np.sqrt(B[0][:,:,0]**2 + B[1][:,:,0]**2 + B[2][:,:,0]**2)
-                Bm3 = np.sqrt(B[0][int(Xinit),:,:]**2 + B[1][int(Xinit),:,:]**2 + B[2][int(Xinit),:,:]**2)
-                Bm4 = np.sqrt(B[0][:,int(Yinit),:]**2 + B[1][:,int(Yinit),:]**2 + B[2][:,int(Yinit),:]**2)
-                Bm5 = np.sqrt(B[0][:,:,int(Zinit)]**2 + B[1][:,:,int(Zinit)]**2 + B[2][:,:,int(Zinit)]**2)
+            print('\n' + 'Calculating |B|...')
             
+            # Only calculates |B| for the 6 planes which are plotted to
+            # avoid excessive time required to find |B| for the entire sim.
+            Bm0 = np.sqrt(B[0][0,:,:]**2 + B[1][0,:,:]**2 + B[2][0,:,:]**2)
+            Bm1 = np.sqrt(B[0][:,0,:]**2 + B[1][:,0,:]**2 + B[2][:,0,:]**2)
+            Bm2 = np.sqrt(B[0][:,:,0]**2 + B[1][:,:,0]**2 + B[2][:,:,0]**2)
+            Bm3 = np.sqrt(B[0][int(Xinit),:,:]**2 + B[1][int(Xinit),:,:]**2 + B[2][int(Xinit),:,:]**2)
+            Bm4 = np.sqrt(B[0][:,int(Yinit),:]**2 + B[1][:,int(Yinit),:]**2 + B[2][:,int(Yinit),:]**2)
+            Bm5 = np.sqrt(B[0][:,:,int(Zinit)]**2 + B[1][:,:,int(Zinit)]**2 + B[2][:,:,int(Zinit)]**2)
+        
             # Min and Max values for normalizing colormaps
             MIN = Bm2.min()
             MAX = Bm2.max()
@@ -444,6 +437,31 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
             cmp = plt.cm.bwr
             norm = mpt.colors.Normalize(vmin = MIN, vmax = MAX)
             colorsX = cmp(norm(Bm0))    
+            
+            print('\n' + 'Puncturing...')
+            # Calling the puncture plot generators which return 2 arrays
+            # containing coordinates for the puncture points, this one
+            # punctures the Z plane at Z = Zinit
+            PunctZ = Punct(Line_Z, Zinit, ds, Steps, Line_X, Line_Y)
+            Xz = PunctZ[0]
+            Yz = PunctZ[1]
+            
+            # The Y plane puncture
+            PunctY = Punct(Line_Y, Yinit, ds, Steps, Line_X, Line_Z) 
+            Xy = PunctY[0]
+            Zy = PunctY[1]
+            
+            # The X plane puncture
+            PunctX = Punct(Line_X, Xinit, ds, Steps, Line_Z, Line_Y)
+            Zx = PunctX[0]
+            Yx = PunctX[1]
+            
+            # Arrays for plotting puncture plots
+            xx = np.linspace(0, Xsize - 1, Xsize)
+            yy = np.linspace(0, Ysize - 1, Ysize)
+            zz = np.linspace(0, Zsize - 1, Zsize)
+            
+            print('\n' + 'Plotting...')            
             
             # The 3D plot
             fig2 = plt.figure(2)
@@ -497,30 +515,7 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
                     1
             ax4.set_zticklabels(LabelList)
             
-            fig2.tight_layout()
-            
-            print('\n' + 'Puncturing...')
-            # Calling the puncture plot generators which return 2 arrays
-            # containing coordinates for the puncture points, this one
-            # punctures the Z plane at Z = Zinit
-            PunctZ = Punct(Line_Z, Zinit, ds, Steps, Line_X, Line_Y)
-            Xz = PunctZ[0]
-            Yz = PunctZ[1]
-            
-            # The Y plane puncture
-            PunctY = Punct(Line_Y, Yinit, ds, Steps, Line_X, Line_Z) 
-            Xy = PunctY[0]
-            Zy = PunctY[1]
-            
-            # The X plane puncture
-            PunctX = Punct(Line_X, Xinit, ds, Steps, Line_Z, Line_Y)
-            Zx = PunctX[0]
-            Yx = PunctX[1]
-            
-            # Arrays for plotting puncture plots
-            xx = np.linspace(0, Xsize - 1, Xsize)
-            yy = np.linspace(0, Ysize - 1, Ysize)
-            zz = np.linspace(0, Zsize - 1, Zsize)
+            fig2.tight_layout()            
             
             # The puncture plots
             fig3 = plt.figure(3)
@@ -637,12 +632,11 @@ def FieldLine_3D(Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, Saves =
         else:
             print('invalid input try again \n')
         
-    print('\n' + 'Plotting...')
     plt.show()
 
 
 # 2D tracing wrapper and plotter
-def FieldLine_2D(Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
+def FieldLine_2D(SIMds, Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
     # Identifying the C tracing function
     func          = _lib.RK4_2D
     func.restype  = int
@@ -764,7 +758,7 @@ def Punct(PunctAxisData, Val, ds, Steps, OtherAxisData1, OtherAxisData2):
 # SEPARATOR MAPPING METHODS
 
 # Master separator mapping method
-def MapSeparator(Saves, B, Ystart, UPorLOW, N = 1):
+def MapSeparator(SIMds, Saves, B, Ystart, UPorLOW, N = 1):
     # ds and passes are set to provide the fastest possible execution
     # By trial and error it was determined that ds must be <= 3 to avoid line
     # drifitng which will cause significant erros near a separator sheet, this
@@ -919,7 +913,7 @@ def SepPoints(N, B, ds, passes, SeparatorX, SeparatorY, SeparatorZ, Ystart, UPor
 # SEPARATOR ANALYSIS METHODS
 
 # Separator slice method
-def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
+def SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
     # Checking validiity of arguments
     try:
         Bx = B[0]
@@ -1081,7 +1075,7 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                 
                 print('\n' + 'Finding XLine...')
                 # Finding and plotting the X line of the separator
-                XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize)                
+                XLine(SIMds, SepX, SepY, SepZ, Xsize, Ysize, Zsize)                
                 
                 print('\n' + 'Plotting...')
                 plt.show()
@@ -1227,7 +1221,7 @@ def SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
                 
                 print('\n' + 'Finding XLine...')
                 # Finding and plotting the X line of the separator
-                XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize)
+                XLine(SIMds, SepX, SepY, SepZ, Xsize, Ysize, Zsize)
                 
                 print('\n' + 'Plotting...')
                 plt.show()            
@@ -1304,7 +1298,7 @@ def FieldLine_3D_SepSlice(Xinit, Yinit, Zinit, B1, B2, B3, Xsize, Ysize, Zsize, 
     
     return Line_X, Line_Y, Line_Z
     
-def XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize):
+def XLine(SIMds, SepX, SepY, SepZ, Xsize, Ysize, Zsize):
     # Arrays for the X line data points
     XLineX = np.zeros(Zsize)
     XLineY = np.zeros(Zsize)
@@ -1327,7 +1321,7 @@ def XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize):
         else:
             # Adjusting the size of the fraction
             if num < 5:
-                print('Coudl not find Xline')
+                print('Could not find Xline')
                 return
             num = num / 2
     
@@ -1429,7 +1423,7 @@ def XLine(SepX, SepY, SepZ, Xsize, Ysize, Zsize):
     ax4.set_yticklabels(LabelList)
     
 
-def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
+def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
     # Checking validity of arguments
     try:
         Bx = B[0]
@@ -1624,6 +1618,8 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
         norm = mpt.colors.Normalize(vmin = MIN, vmax = MAX)
         colorsX = cmp(norm(Bm0))     
         
+        print('\n' + 'Plotting...')        
+        
         # The 3D plot
         fig2 = plt.figure(2)
         fig2.set_size_inches(10, 10, forward = True)
@@ -1726,8 +1722,7 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
         
     except:
         1
-        
-    print('\n' + 'Plotting...')
+
     plt.show()
     
 #-----------------------------------------------------------------------------#
@@ -1740,7 +1735,7 @@ def SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None)
 #Bx = d['by']
 #By = d['bx']
 
-#TraceField([Bx, By], [50, 50])
+#TraceField(.05, [Bx, By], [50, 50])
 
 
 # 3D
@@ -1756,21 +1751,21 @@ BZ =  np.load('/scratch-fast/asym030/bz.npy')
 print('Loaded')
 
 #SepY0 = np.load('LowerSepY.npy')[0]
-#TraceField([BX, BY, BZ], [0, SepY0, 0], .075, 1.5)
-#TraceField([BX, BY, BZ], [12.5, 5, 12.5], .0125, 100, ['TraceX6.npy', 'TraceY6.npy', 'TraceZ6.npy'])
-#TraceField([BX, BY, BZ, EX, EY, EZ], [25.6, 12.8, 12.8], .0125, 100)
-TraceField([BX, BY, BZ], [25.6, 12.8, 12.8], .0025, 100)
+#TraceField(.025, [BX, BY, BZ], [0, SepY0, 0], .075, 1.5)
+#TraceField(.025, [BX, BY, BZ], [12.5, 5, 12.5], .0125, 100, ['TraceX6.npy', 'TraceY6.npy', 'TraceZ6.npy'])
+#TraceField(.025, [BX, BY, BZ, EX, EY, EZ], [25.6, 12.8, 12.8], .0125, 100)
+TraceField(.025, [BX, BY, BZ], [25.6, 12.8, 12.8], .0025, 100)
 
-#SeparatorSlice('LowerSepX.npy', 'LowerSepY.npy', 'LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
-#SeparatorSlice('UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 51.2, 25.6, 25.6)
+#SeparatorSlice(.025, 'LowerSepX.npy', 'LowerSepY.npy', 'LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
+#SeparatorSlice(.025, 'UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 51.2, 25.6, 25.6)
 
-#SeparatorLoader('LowerSepX.npy','LowerSepY.npy','LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
+#SeparatorLoader(.025, 'LowerSepX.npy','LowerSepY.npy','LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
 
 
 # 318*.025 for Upper
 # 150*.025 for Lower
-#MapSeparator(['SepX10.npy', 'SepY10.npy', 'SepZ10.npy'], [BX, BY, BZ], 8, 'Upper', 16)
-#MapSeparator(['SepX9.npy', 'SepY9.npy', 'SepZ9.npy'], [BX, BY, BZ], 3.75, 'Lower', 8)
+#MapSeparator(.025, ['SepX10.npy', 'SepY10.npy', 'SepZ10.npy'], [BX, BY, BZ], 8, 'Upper', 16)
+#MapSeparator(.025, ['SepX9.npy', 'SepY9.npy', 'SepZ9.npy'], [BX, BY, BZ], 3.75, 'Lower', 8)
 
-#SeparatorLoader('SepX10.npy','SepY10.npy','SepZ10.npy', 51.2, 25.6, 25.6)
+#SeparatorLoader(.025, 'SepX10.npy','SepY10.npy','SepZ10.npy', 51.2, 25.6, 25.6)
 
