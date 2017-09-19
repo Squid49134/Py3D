@@ -64,6 +64,7 @@ def TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None):
             assert(0 <= Start[0]/SIMds <= B[0].shape[0] - 1)
             assert(0 <= Start[1]/SIMds <= B[0].shape[1] - 1)
             assert(0 <= Start[2]/SIMds <= B[0].shape[2] - 1)
+            assert(0 < ds < 1)
             float(passes)
             float(ds)
         except:
@@ -113,6 +114,7 @@ def TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None):
                         assert(0 <= Start[0]/SIMds <= B[0].shape[0] - 1)
                         assert(0 <= Start[1]/SIMds <= B[0].shape[1] - 1)
                         assert(0 <= Start[2]/SIMds <= B[0].shape[2] - 1)
+                        assert(0 < ds < 1)
                         break
                     except:
                         print('invalid input try again \n')
@@ -138,6 +140,7 @@ def TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None):
             assert(B[0].shape == B[1].shape)
             assert(0 <= Start[0]/SIMds <= B[0].shape[0] - 1)
             assert(0 <= Start[1]/SIMds <= B[0].shape[1] - 1)
+            assert(0 < ds < 1)
         except:
             print('invalid arguments')
             return 0
@@ -170,6 +173,7 @@ def TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None):
                         Start[1] = abs(float(raw_input('Enter Y value of starting position: \n')))
                         assert(0 <= Start[0]/SIMds <= B[0].shape[0] - 1)
                         assert(0 <= Start[1]/SIMds <= B[0].shape[1] - 1)
+                        assert(0 < ds < 1)
                         break
                     except:
                         print('invalid input try again \n')
