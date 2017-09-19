@@ -9,21 +9,18 @@ compiling shared library:
     gcc -o TracerFunctions.so -shared -fPIC TracerFunctions.c
 
 User Methods:
-*At the top of the TracerWrapper file is a special constant called SIMds, which
-    represents the ds of the simulation (not the trace).  This constant is used for converting 
-    between grid space and real space, and must be adjusted manually.  As a default, 
-    SIMds is set to .025, the ds of the 3D 'asym030' simulation data used to develop the program.
-    As an example, for the 2D 'turb_data' simulation, SIMds should be adjusted to .05
 *all methods are fairly well error proof so the user cannot cause segmentation faults
 *3D plots use colormeshs with low resolution to save time, if desired there
     are options in the code called cstride and rstride which both = 10 and can
     be lowered to increase this resolution
 
-    TraceField(B, Start, ds, passes, Saves = None)
+    TraceField(SIMds, B, Start, ds, passes, Saves = None)
         * recursive allowing user to quickly trace multiple points
+        - SIMds is the real space ds of the simulation being traced used to plot in real space indexing
         - B is a length 2 or 3 vector of the magnetic field data
         - Start is a length 2 or 3 vector of the starting location in real space
-        - ds is the differential step in real space, can be any size
+        - ds is the differential step of the trace in real space, must be between 0 and 1
+            large ds may cause unstable traces
         - WARNING: once inside the method ds is converted to index space, keep this
             in mind when debugging
         - passes is a rough estimate of the number of passes through the simulation
@@ -42,7 +39,8 @@ User Methods:
                 Will also total E interpolated along the path of the trace, print the total
                 and plot the total per step
 
-    MapSeparator(Saves, B, Ystart, UPorLOW, N = 1):
+    MapSeparator(SIMds, Saves, B, Ystart, UPorLOW, N = 1):
+        - SIMds is the real space ds of the simulation
         - Saves is a vector of string path names to save the X, Y and Z data
         - Saves names are checked before mapping separator to avoid overwritting data
         - B is a length 3 vector of the magnetic field data
@@ -64,10 +62,11 @@ User Methods:
             MapSeparator(['SepX.npy', 'SepY.npy', 'SepZ.npy'], [Bx, By, Bz], Ystart, 'Lower', N = 1):
                 Finds the lower separator sheet, and saves the data
 
-    SeparatorLoader(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
+    SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
         * lower separator is problematic, it can be mapped but the location
             is very dependant on the number of passes, this can be seen using
             the separator slice method with B included
+        - SIMds is the real space ds of the simulation
         - PathSepX, Y and Z are string path names to the separator data to be loaded
         - Xsize, Ysize and Zsize are the real space sizes of the simulation
         - B is an optional length 3 vector of the magnetic field data
@@ -78,8 +77,9 @@ User Methods:
                 Also plots projection of separator down Z axis over a colormesh of |B| as 
                 well as a 3D plot of the separator over |B|
 
-    SeparatorSlice(PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
+    SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B = None):
         * recursive allowing user to quickly slice multiple points
+        - SIMds is the real space ds of the simulation
         - PathSepX, Y and Z are string path names to the separator data to be loaded
         - Xsize, Ysize and Zsize are the real space sizes of the simulation
         - B is an optional length 3 vector of the magnetic field data
