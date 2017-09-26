@@ -1,6 +1,7 @@
 
 3D Field Tracer Documenation
 ----------------------------
+William Ransom, University of Delaware 2017
 
 Python Wrapper: TracerWrapper.py
 Shared C Library: TracerFunctions.c

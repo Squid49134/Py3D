@@ -1,4 +1,5 @@
 // C LIBRARY TO EXTEND FIELD TRACER
+// William Ransom, University of Delaware 2017
 
 // gcc -o TracerFunctions.so -shared -fPIC TracerFunctions.c
 
@@ -19,279 +20,6 @@
 #define Bx2(i,j)  Bx[(i) + (j)*Xsize]
 #define By2(i,j)  By[(i) + (j)*Xsize]
 
-//---------------------------------------------------------------------------//
-//---------------------------------------------------------------------------//
-// SLOPE CALCULATING METHOD FOR E
-
-// Works identically to CalcSlopes3 accept it does not normalize the B
-// components
-void CalcSlopes3E(double x, double y, double z, double * Bx, double * By, double * Bz, int Xsize, int Ysize, int Zsize, double * B){
-
-    double Wx, Wy, Wz;
-    int i, j, k, i1, j1, k1;
-    
-    if (x >= 0 && y >= 0 && z >= 0){
-        Wx = fmod(x, 1);
-        Wy = fmod(y, 1);
-        Wz = fmod(z, 1);
-        i = (int) x;
-        j = (int) y;
-        k = (int) z;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (i == (Xsize - 1)){
-            i1 = 0;
-        }
-        if (i > (Xsize - 1)){
-            i = i - Xsize;            
-            i1 = i1 - Xsize;
-        }
-        if (j == (Ysize - 1)){
-            j1 = 0;
-        }
-        if (j > (Ysize - 1)){
-            j = j - Ysize;            
-            j1 = j1 - Ysize;
-        }
-        if (k == (Zsize - 1)){
-            k1 = 0;
-        }
-        if (k > (Zsize - 1)){
-            k = k - Zsize;            
-            k1 = k1 - Zsize;
-        }
-    }
-    else if (y >= 0 && z >= 0){
-        Wx = 1 - ((int) x - x);        
-        i = (int) x;
-        Wy = fmod(y, 1);
-        j = (int) y;
-        Wz = fmod(z, 1);
-        k = (int) z;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (j == (Ysize - 1)){
-            j1 = 0;
-        }
-        if (j > (Ysize - 1)){
-            j = j - Ysize;            
-            j1 = j1 - Ysize;
-        }
-        if (k == (Zsize - 1)){
-            k1 = 0;
-        }
-        if (k > (Zsize - 1)){
-            k = k - Zsize;            
-            k1 = k1 - Zsize;
-        }
-        if (i == -1){
-            i = Xsize - 1;      
-        }
-        if (i < -1){
-            i = i + Xsize;
-            i1 = i1 + Xsize;        
-        }
-    }
-    else if (x >= 0 && z >= 0){
-        Wy = 1 - ((int) y - y);
-        j = (int) y;
-        Wx = fmod(x, 1);
-        i = (int) x;
-        Wz = fmod(z, 1);
-        k = (int) z;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (i == (Xsize - 1)){
-            i1 = 0;
-        }
-        if (i > (Xsize - 1)){
-            i = i - Xsize;            
-            i1 = i1 - Xsize;
-        }
-        if (k == (Zsize - 1)){
-            k1 = 0;
-        }
-        if (k > (Zsize - 1)){
-            k = k - Zsize;            
-            k1 = k1 - Zsize;
-        }
-        if (j == -1){
-            j = Ysize - 1;      
-        }
-        if (j < -1){
-            j = j + Ysize;
-            j1 = j1 + Ysize;        
-        }
-    }
-    else if (y >= 0 && x >= 0){
-        Wz = 1 - ((int) z - z);
-        k = (int) z;
-        Wx = fmod(x, 1);
-        i = (int) x;
-        Wy = fmod(y, 1);
-        j = (int) y;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (i == (Xsize - 1)){
-            i1 = 0;
-        }
-        if (i > (Xsize - 1)){
-            i = i - Xsize;            
-            i1 = i1 - Xsize;
-        }
-        if (j == (Ysize - 1)){
-            j1 = 0;
-        }
-        if (j > (Ysize - 1)){
-            j = j - Ysize;            
-            j1 = j1 - Ysize;
-        }
-        if (k == -1){
-            k = Zsize - 1;      
-        }
-        if (k < -1){
-            k = k + Zsize;
-            k1 = k1 + Zsize;        
-        }
-    }
-    else if (z >= 0){
-        Wx = 1 - ((int) x - x);        
-        i = (int) x;
-        Wy = 1 - ((int) y - y);
-        j = (int) y;
-        Wz = fmod(z, 1);
-        k = (int) z;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (k == (Zsize - 1)){
-            k1 = 0;
-        }
-        if (k > (Zsize - 1)){
-            k = k - Zsize;            
-            k1 = k1 - Zsize;
-        }
-        if (i == -1){
-            i = Xsize - 1;      
-        }
-        if (i < -1){
-            i = i + Xsize;
-            i1 = i1 + Xsize;        
-        }
-        if (j == -1){
-            j = Ysize - 1;      
-        }
-        if (j < -1){
-            j = j + Ysize;
-            j1 = j1 + Ysize;        
-        }
-    }
-    else if (y >= 0){
-        Wx = 1 - ((int) x - x);        
-        i = (int) x;
-        Wz = 1 - ((int) z - z);
-        k = (int) z;
-        Wy = fmod(y, 1);
-        j = (int) y;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (j == (Ysize - 1)){
-            j1 = 0;
-        }
-        if (j > (Ysize - 1)){
-            j = j - Ysize;            
-            j1 = j1 - Ysize;
-        }
-        if (i == -1){
-            i = Xsize - 1;      
-        }
-        if (i < -1){
-            i = i + Xsize;
-            i1 = i1 + Xsize;        
-        }
-        if (k == -1){
-            k = Zsize - 1;      
-        }
-        if (k < -1){
-            k = k + Zsize;
-            k1 = k1 + Zsize;        
-        }
-    }
-    else if (x >= 0){
-        Wy = 1 - ((int) y - y);
-        j = (int) y;
-        Wz = 1 - ((int) z - z);
-        k = (int) z;
-        Wx = fmod(x, 1);
-        i = (int) x;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (i == (Xsize - 1)){
-            i1 = 0;
-        }
-        if (i > (Xsize - 1)){
-            i = i - Xsize;            
-            i1 = i1 - Xsize;
-        }
-        if (j == -1){
-            j = Ysize - 1;      
-        }
-        if (j < -1){
-            j = j + Ysize;
-            j1 = j1 + Ysize;        
-        }
-        if (k == -1){
-            k = Zsize - 1;      
-        }
-        if (k < -1){
-            k = k + Zsize;
-            k1 = k1 + Zsize;        
-        }
-    }
-    else{
-        Wx = 1 - ((int) x - x);        
-        i = (int) x;
-        Wy = 1 - ((int) y - y);
-        j = (int) y;
-        Wz = 1 - ((int) z - z);
-        k = (int) z;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (i == -1){
-            i = Xsize - 1;      
-        }
-        if (i < -1){
-            i = i + Xsize;
-            i1 = i1 + Xsize;        
-        }
-        if (j == -1){
-            j = Ysize - 1;      
-        }
-        if (j < -1){
-            j = j + Ysize;
-            j1 = j1 + Ysize;        
-        }
-        if (k == -1){
-            k = Zsize - 1;      
-        }
-        if (k < -1){
-            k = k + Zsize;
-            k1 = k1 + Zsize;        
-        }
-    }
-
-    B[0] = (1-Wx)*(1-Wy)*(1-Wz)*Bx(i,j,k) + (1-Wx)*Wy*(1-Wz)*Bx(i,j1,k) + Wx*(1-Wy)*(1-Wz)*Bx(i1,j,k) + Wx*Wy*(1-Wz)*Bx(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*Bx(i,j,k1) + (1-Wx)*Wy*Wz*Bx(i,j1,k1) + Wx*(1-Wy)*Wz*Bx(i1,j,k1) + Wx*Wy*Wz*Bx(i1,j1,k1);
-    B[1] = (1-Wx)*(1-Wy)*(1-Wz)*By(i,j,k) + (1-Wx)*Wy*(1-Wz)*By(i,j1,k) + Wx*(1-Wy)*(1-Wz)*By(i1,j,k) + Wx*Wy*(1-Wz)*By(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*By(i,j,k1) + (1-Wx)*Wy*Wz*By(i,j1,k1) + Wx*(1-Wy)*Wz*By(i1,j,k1) + Wx*Wy*Wz*By(i1,j1,k1);
-    B[2] = (1-Wx)*(1-Wy)*(1-Wz)*Bz(i,j,k) + (1-Wx)*Wy*(1-Wz)*Bz(i,j1,k) + Wx*(1-Wy)*(1-Wz)*Bz(i1,j,k) + Wx*Wy*(1-Wz)*Bz(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*Bz(i,j,k1) + (1-Wx)*Wy*Wz*Bz(i,j1,k1) + Wx*(1-Wy)*Wz*Bz(i1,j,k1) + Wx*Wy*Wz*Bz(i1,j1,k1);
-
-}
 
 //---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//
@@ -698,245 +426,6 @@ int RK4_3D(double * Line_X, double * Line_Y, double * Line_Z, double Xinit, doub
     return interp;
 }
 
-//---------------------------------------------------------------------------//
-//---------------------------------------------------------------------------//
-// STANDARD 2D TRACING METHODS
-
-// 2D interpolation / slope calculating method, works identically to
-// CalcSlopes3 accept only interpolates nearest 4 points, not 8 since 2D
-void CalcSlopes2(double x, double y, float * Bx, float * By, int Xsize, int Ysize, double * B){ 
-
-    double Wx, Wy;
-    int i, j, i1, j1;
-    
-    double Bx_ij, Bx_i1j, Bx_ij1, Bx_i1j1, By_ij, By_i1j, By_ij1, By_i1j1;
-    
-    if ((x >= 0) && (y >= 0)){
-        Wx = fmod(x, 1);
-        Wy = fmod(y, 1);
-        i = (int) x;
-        j = (int) y;
-        i1 = i + 1;
-        j1 = j + 1;
-        if (i == (Xsize - 1)){
-            i1 = 0;
-        }
-        if (i > (Xsize - 1)){
-            i = i - Xsize;            
-            i1 = i1 - Xsize;
-        }
-        if (j == (Ysize - 1)){
-            j1 = 0;
-        }
-        if (j > (Ysize - 1)){
-            j = j - Ysize;            
-            j1 = j1 - Ysize;
-        }
-    }
-    else if (y >= 0){
-        Wx = 1 - ((int) x - x);        
-        i = (int) x;
-        Wy = fmod(y, 1);
-        j = (int) y;
-        i1 = i + 1;
-        j1 = j + 1;
-        if (j == (Ysize - 1)){
-            j1 = 0;
-        }
-        if (j > (Ysize - 1)){
-            j = j - Ysize;            
-            j1 = j1 - Ysize;
-        }
-        if (i == -1){
-            i = Xsize - 1;      
-        }
-        if (i < -1){
-            i = i + Xsize;
-            i1 = i1 + Xsize;        
-        }
-    }
-    else if (x >= 0){
-        Wy = 1 - ((int) y - y);
-        j = (int) y;
-        Wx = fmod(x, 1);
-        i = (int) x;
-        i1 = i + 1;
-        j1 = j + 1;
-        if (i == (Xsize - 1)){
-            i1 = 0;
-        }
-        if (i > (Xsize - 1)){
-            i = i - Xsize;            
-            i1 = i1 - Xsize;
-        }
-        if (j == -1){
-            j = Ysize - 1;      
-        }
-        if (j < -1){
-            j = j + Ysize;
-            j1 = j1 + Ysize;        
-        }
-    }
-    else{
-        Wx = 1 - ((int) x - x);        
-        i = (int) x;
-        Wy = 1 - ((int) y - y);
-        j = (int) y;
-        i1 = i + 1;
-        j1 = j + 1;
-        if (i == -1){
-            i = Xsize - 1;      
-        }
-        if (i < -1){
-            i = i + Xsize;
-            i1 = i1 + Xsize;        
-        }
-        if (j == -1){
-            j = Ysize - 1;      
-        }
-        if (j < -1){
-            j = j + Ysize;
-            j1 = j1 + Ysize;        
-        }
-    }
-
-    Bx_ij = Bx2(i,j);
-    Bx_i1j = Bx2(i1,j);
-    Bx_ij1 = Bx2(i,j1);
-    Bx_i1j1 = Bx2(i1,j1);
-    
-    By_ij = By2(i,j);
-    By_i1j = By2(i1,j);
-    By_ij1 = By2(i,j1);
-    By_i1j1 = By2(i1,j1);
-
-    double B_Wx = (1-Wx)*(1-Wy)*Bx_ij + (1-Wx)*Wy*Bx_ij1 + Wx*(1-Wy)*Bx_i1j + Wx*Wy*Bx_i1j1;
-    double B_Wy = (1-Wx)*(1-Wy)*By_ij + (1-Wx)*Wy*By_ij1 + Wx*(1-Wy)*By_i1j + Wx*Wy*By_i1j1;
-    double B_Wm = sqrt(pow(B_Wx, 2) + pow(B_Wy, 2));
-
-    B[0] = B_Wx/B_Wm;
-    B[1] = B_Wy/B_Wm;
-
-}
-
-
-// Fourth Order Runge-Kutta procedure for 2D, works similarly to 3D accept
-// no Z component, and the trace does not run for the total number of steps
-// instead it is cut off when the line bites its own tail, so this method
-// returns the number of steps required to complete the line rather than 
-// the interpolation total
-int RK4_2D(double* Line_X, double * Line_Y, double Xinit, double Yinit, float * Bx, float * By, int Xsize, int Ysize, float ds, int steps){
-
-    double K1x, K2x, K3x, K4x, K1y, K2y, K3y, K4y = 0;
-
-    double Slopes[3];
-    double Slopes2[3];
-    double Slopes3[3];
-    double Slopes4[3];
-  
-    double X;
-    double Y;
-    
-    X = Xinit;
-    Y = Yinit;
-    
-    int step;    
-
-    // Variables to determine when to cut off the trace
-    int killin10000 = 0;
-    int kill = 0;
-    // Variable to trim line data arrays to proper length
-    int ArrayLength;
-
-    for (step = 0; step < steps; step++){
-        if (X < -.5){
-            X = X + Xsize;
-        }
-        if (Y < -.5){
-            Y = Y + Ysize;
-        }
-        if (X > (Xsize - .5)){
-            X = X - Xsize;
-        }
-        if (Y > (Ysize - .5)){
-            Y = Y - Ysize;
-        }
-     
-        Line_X[step] = X;
-        Line_Y[step] = Y;
-
-        // Lines with low curvature will usually bite their own tail within ds
-        // of their starting point
-        if ((step > 5) && (fabs(X - Line_X[0]) < ds) && (fabs(Y - Line_Y[0]) < ds)){
-            // Setting the length to trim the line data to
-            ArrayLength = step + 1;
-            // returning this value 
-            return ArrayLength;
-            break;
-        }
-        // Lines of greater curvature will not bite their own tail exactly.
-        // Instead they will pass close to their starting point,
-        // there is however no way to distinguish between a line which has
-        // missed its starting point by a small distance, and one which will
-        // perfectly bite its own tail but simply will not do so for a few more
-        // steps.  To solve this when any line passes within a small distance
-        // of its starting location, kill is set to 1, such that after each
-        // step killin10000 will be incremented by 1, if killin10000 reaches 
-        // 10000 before the line gets any closer to its starting point, the
-        // trace will be cut off, and the data arrays will be trimmed to the
-        // number of steps taken before the killin10000 stage began (when the 
-        // line was the closest it will get to its starting position).  
-        // However, if the line passes closer to its starting position before 
-        // killin10000 reaches 10000, the trace will cut off there.
-        else if ((step > 100) && (fabs(X - Line_X[0]) < (25*ds)) && (fabs(Y - Line_Y[0]) < (25*ds))){
-            ArrayLength = step + 1;
-            killin10000 = 0;
-            kill = 1;
-        }
-        // Even the highest curvature lines should pass within 250*ds of their
-        // starting position, found by trial and error, not certain
-        else if ((step > 1000) && (fabs(X - Line_X[0]) < (250*ds)) && (fabs(Y - Line_Y[0]) < (250*ds))){
-            ArrayLength = step + 1;
-            killin10000 = 0;
-            kill = 1;
-            
-        }
-        // if the line does not pass closer to its starting position, return
-        // the value of Array length when the killin10000 process began
-        if ((kill == 1) && (killin10000 == 10000)){
-            return ArrayLength;
-            break;
-        }
-
-        //RK4
-
-        CalcSlopes2(X, Y, Bx, By, Xsize, Ysize, Slopes);
-        K1x = Slopes[0];
-        K1y = Slopes[1];
-        
-        CalcSlopes2(X + (ds/2)*K1x, Y + (ds/2)*K1y, Bx, By, Xsize, Ysize, Slopes2);
-        K2x = Slopes2[0];
-        K2y = Slopes2[1];
-        
-        CalcSlopes2(X + (ds/2)*K2x, Y + (ds/2)*K2y, Bx, By, Xsize, Ysize, Slopes3);
-        K3x = Slopes3[0];
-        K3y = Slopes3[1];
-        
-        CalcSlopes2(X + ds*K3x, Y + ds*K3y, Bx, By, Xsize, Ysize, Slopes4);
-        K4x = Slopes4[0];
-        K4y = Slopes4[1];
-        
-        X = X + (ds/6)*(K1x + 2*K2x + 2*K3x + K4x);
-        Y = Y + (ds/6)*(K1y + 2*K2y + 2*K3y + K4y);
-
-        // incrementing killin10000
-        killin10000++;
-    }
-    // if the max number of steps is reached, the line has not passed within
-    // 250*ds of its starting position and therefore is considered incomplete
-    printf("Warning, line not completed");
-    return steps;
-}
 
 //---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//
@@ -967,6 +456,7 @@ int Punct(double * PunctAxis, double Val, float ds, int Steps, double * OtherAxi
     // Returns the total number of points found
     return Points;
 }
+
 
 //---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//
@@ -1217,5 +707,521 @@ double SepPoints(int N, double * Start, double * Bx, double * By, double * Bz, i
         }
         return Start[1];
     }
+}
+
+
+//---------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
+// STANDARD 2D TRACING METHODS
+
+// 2D interpolation / slope calculating method, works identically to
+// CalcSlopes3 accept only interpolates nearest 4 points, not 8 since 2D
+void CalcSlopes2(double x, double y, float * Bx, float * By, int Xsize, int Ysize, double * B){ 
+
+    double Wx, Wy;
+    int i, j, i1, j1;
+    
+    double Bx_ij, Bx_i1j, Bx_ij1, Bx_i1j1, By_ij, By_i1j, By_ij1, By_i1j1;
+    
+    if ((x >= 0) && (y >= 0)){
+        Wx = fmod(x, 1);
+        Wy = fmod(y, 1);
+        i = (int) x;
+        j = (int) y;
+        i1 = i + 1;
+        j1 = j + 1;
+        if (i == (Xsize - 1)){
+            i1 = 0;
+        }
+        if (i > (Xsize - 1)){
+            i = i - Xsize;            
+            i1 = i1 - Xsize;
+        }
+        if (j == (Ysize - 1)){
+            j1 = 0;
+        }
+        if (j > (Ysize - 1)){
+            j = j - Ysize;            
+            j1 = j1 - Ysize;
+        }
+    }
+    else if (y >= 0){
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wy = fmod(y, 1);
+        j = (int) y;
+        i1 = i + 1;
+        j1 = j + 1;
+        if (j == (Ysize - 1)){
+            j1 = 0;
+        }
+        if (j > (Ysize - 1)){
+            j = j - Ysize;            
+            j1 = j1 - Ysize;
+        }
+        if (i == -1){
+            i = Xsize - 1;      
+        }
+        if (i < -1){
+            i = i + Xsize;
+            i1 = i1 + Xsize;        
+        }
+    }
+    else if (x >= 0){
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        Wx = fmod(x, 1);
+        i = (int) x;
+        i1 = i + 1;
+        j1 = j + 1;
+        if (i == (Xsize - 1)){
+            i1 = 0;
+        }
+        if (i > (Xsize - 1)){
+            i = i - Xsize;            
+            i1 = i1 - Xsize;
+        }
+        if (j == -1){
+            j = Ysize - 1;      
+        }
+        if (j < -1){
+            j = j + Ysize;
+            j1 = j1 + Ysize;        
+        }
+    }
+    else{
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        i1 = i + 1;
+        j1 = j + 1;
+        if (i == -1){
+            i = Xsize - 1;      
+        }
+        if (i < -1){
+            i = i + Xsize;
+            i1 = i1 + Xsize;        
+        }
+        if (j == -1){
+            j = Ysize - 1;      
+        }
+        if (j < -1){
+            j = j + Ysize;
+            j1 = j1 + Ysize;        
+        }
+    }
+
+    Bx_ij = Bx2(i,j);
+    Bx_i1j = Bx2(i1,j);
+    Bx_ij1 = Bx2(i,j1);
+    Bx_i1j1 = Bx2(i1,j1);
+    
+    By_ij = By2(i,j);
+    By_i1j = By2(i1,j);
+    By_ij1 = By2(i,j1);
+    By_i1j1 = By2(i1,j1);
+
+    double B_Wx = (1-Wx)*(1-Wy)*Bx_ij + (1-Wx)*Wy*Bx_ij1 + Wx*(1-Wy)*Bx_i1j + Wx*Wy*Bx_i1j1;
+    double B_Wy = (1-Wx)*(1-Wy)*By_ij + (1-Wx)*Wy*By_ij1 + Wx*(1-Wy)*By_i1j + Wx*Wy*By_i1j1;
+    double B_Wm = sqrt(pow(B_Wx, 2) + pow(B_Wy, 2));
+
+    B[0] = B_Wx/B_Wm;
+    B[1] = B_Wy/B_Wm;
+
+}
+
+
+// Fourth Order Runge-Kutta procedure for 2D, works similarly to 3D accept
+// no Z component, and the trace does not run for the total number of steps
+// instead it is cut off when the line bites its own tail, so this method
+// returns the number of steps required to complete the line rather than 
+// the interpolation total
+int RK4_2D(double* Line_X, double * Line_Y, double Xinit, double Yinit, float * Bx, float * By, int Xsize, int Ysize, float ds, int steps){
+
+    double K1x, K2x, K3x, K4x, K1y, K2y, K3y, K4y = 0;
+
+    double Slopes[3];
+    double Slopes2[3];
+    double Slopes3[3];
+    double Slopes4[3];
+  
+    double X;
+    double Y;
+    
+    X = Xinit;
+    Y = Yinit;
+    
+    int step;    
+
+    // Variables to determine when to cut off the trace
+    int killin10000 = 0;
+    int kill = 0;
+    // Variable to trim line data arrays to proper length
+    int ArrayLength;
+
+    for (step = 0; step < steps; step++){
+        if (X < -.5){
+            X = X + Xsize;
+        }
+        if (Y < -.5){
+            Y = Y + Ysize;
+        }
+        if (X > (Xsize - .5)){
+            X = X - Xsize;
+        }
+        if (Y > (Ysize - .5)){
+            Y = Y - Ysize;
+        }
+     
+        Line_X[step] = X;
+        Line_Y[step] = Y;
+
+        // Lines with low curvature will usually bite their own tail within ds
+        // of their starting point
+        if ((step > 5) && (fabs(X - Line_X[0]) < ds) && (fabs(Y - Line_Y[0]) < ds)){
+            // Setting the length to trim the line data to
+            ArrayLength = step + 1;
+            // returning this value 
+            return ArrayLength;
+            break;
+        }
+        // Lines of greater curvature will not bite their own tail exactly.
+        // Instead they will pass close to their starting point,
+        // there is however no way to distinguish between a line which has
+        // missed its starting point by a small distance, and one which will
+        // perfectly bite its own tail but simply will not do so for a few more
+        // steps.  To solve this when any line passes within a small distance
+        // of its starting location, kill is set to 1, such that after each
+        // step killin10000 will be incremented by 1, if killin10000 reaches 
+        // 10000 before the line gets any closer to its starting point, the
+        // trace will be cut off, and the data arrays will be trimmed to the
+        // number of steps taken before the killin10000 stage began (when the 
+        // line was the closest it will get to its starting position).  
+        // However, if the line passes closer to its starting position before 
+        // killin10000 reaches 10000, the trace will cut off there.
+        else if ((step > 100) && (fabs(X - Line_X[0]) < (25*ds)) && (fabs(Y - Line_Y[0]) < (25*ds))){
+            ArrayLength = step + 1;
+            killin10000 = 0;
+            kill = 1;
+        }
+        // Even the highest curvature lines should pass within 250*ds of their
+        // starting position, found by trial and error, not certain
+        else if ((step > 1000) && (fabs(X - Line_X[0]) < (250*ds)) && (fabs(Y - Line_Y[0]) < (250*ds))){
+            ArrayLength = step + 1;
+            killin10000 = 0;
+            kill = 1;
+            
+        }
+        // if the line does not pass closer to its starting position, return
+        // the value of Array length when the killin10000 process began
+        if ((kill == 1) && (killin10000 == 10000)){
+            return ArrayLength;
+            break;
+        }
+
+        //RK4
+
+        CalcSlopes2(X, Y, Bx, By, Xsize, Ysize, Slopes);
+        K1x = Slopes[0];
+        K1y = Slopes[1];
+        
+        CalcSlopes2(X + (ds/2)*K1x, Y + (ds/2)*K1y, Bx, By, Xsize, Ysize, Slopes2);
+        K2x = Slopes2[0];
+        K2y = Slopes2[1];
+        
+        CalcSlopes2(X + (ds/2)*K2x, Y + (ds/2)*K2y, Bx, By, Xsize, Ysize, Slopes3);
+        K3x = Slopes3[0];
+        K3y = Slopes3[1];
+        
+        CalcSlopes2(X + ds*K3x, Y + ds*K3y, Bx, By, Xsize, Ysize, Slopes4);
+        K4x = Slopes4[0];
+        K4y = Slopes4[1];
+        
+        X = X + (ds/6)*(K1x + 2*K2x + 2*K3x + K4x);
+        Y = Y + (ds/6)*(K1y + 2*K2y + 2*K3y + K4y);
+
+        // incrementing killin10000
+        killin10000++;
+    }
+    // if the max number of steps is reached, the line has not passed within
+    // 250*ds of its starting position and therefore is considered incomplete
+    printf("Warning, line not completed");
+    return steps;
+}
+
+
+//---------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
+// SLOPE CALCULATING METHOD FOR E
+
+// Works identically to CalcSlopes3 accept it does not normalize the B
+// components
+void CalcSlopes3E(double x, double y, double z, double * Bx, double * By, double * Bz, int Xsize, int Ysize, int Zsize, double * B){
+
+    double Wx, Wy, Wz;
+    int i, j, k, i1, j1, k1;
+    
+    if (x >= 0 && y >= 0 && z >= 0){
+        Wx = fmod(x, 1);
+        Wy = fmod(y, 1);
+        Wz = fmod(z, 1);
+        i = (int) x;
+        j = (int) y;
+        k = (int) z;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (i == (Xsize - 1)){
+            i1 = 0;
+        }
+        if (i > (Xsize - 1)){
+            i = i - Xsize;            
+            i1 = i1 - Xsize;
+        }
+        if (j == (Ysize - 1)){
+            j1 = 0;
+        }
+        if (j > (Ysize - 1)){
+            j = j - Ysize;            
+            j1 = j1 - Ysize;
+        }
+        if (k == (Zsize - 1)){
+            k1 = 0;
+        }
+        if (k > (Zsize - 1)){
+            k = k - Zsize;            
+            k1 = k1 - Zsize;
+        }
+    }
+    else if (y >= 0 && z >= 0){
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wy = fmod(y, 1);
+        j = (int) y;
+        Wz = fmod(z, 1);
+        k = (int) z;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (j == (Ysize - 1)){
+            j1 = 0;
+        }
+        if (j > (Ysize - 1)){
+            j = j - Ysize;            
+            j1 = j1 - Ysize;
+        }
+        if (k == (Zsize - 1)){
+            k1 = 0;
+        }
+        if (k > (Zsize - 1)){
+            k = k - Zsize;            
+            k1 = k1 - Zsize;
+        }
+        if (i == -1){
+            i = Xsize - 1;      
+        }
+        if (i < -1){
+            i = i + Xsize;
+            i1 = i1 + Xsize;        
+        }
+    }
+    else if (x >= 0 && z >= 0){
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        Wx = fmod(x, 1);
+        i = (int) x;
+        Wz = fmod(z, 1);
+        k = (int) z;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (i == (Xsize - 1)){
+            i1 = 0;
+        }
+        if (i > (Xsize - 1)){
+            i = i - Xsize;            
+            i1 = i1 - Xsize;
+        }
+        if (k == (Zsize - 1)){
+            k1 = 0;
+        }
+        if (k > (Zsize - 1)){
+            k = k - Zsize;            
+            k1 = k1 - Zsize;
+        }
+        if (j == -1){
+            j = Ysize - 1;      
+        }
+        if (j < -1){
+            j = j + Ysize;
+            j1 = j1 + Ysize;        
+        }
+    }
+    else if (y >= 0 && x >= 0){
+        Wz = 1 - ((int) z - z);
+        k = (int) z;
+        Wx = fmod(x, 1);
+        i = (int) x;
+        Wy = fmod(y, 1);
+        j = (int) y;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (i == (Xsize - 1)){
+            i1 = 0;
+        }
+        if (i > (Xsize - 1)){
+            i = i - Xsize;            
+            i1 = i1 - Xsize;
+        }
+        if (j == (Ysize - 1)){
+            j1 = 0;
+        }
+        if (j > (Ysize - 1)){
+            j = j - Ysize;            
+            j1 = j1 - Ysize;
+        }
+        if (k == -1){
+            k = Zsize - 1;      
+        }
+        if (k < -1){
+            k = k + Zsize;
+            k1 = k1 + Zsize;        
+        }
+    }
+    else if (z >= 0){
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        Wz = fmod(z, 1);
+        k = (int) z;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (k == (Zsize - 1)){
+            k1 = 0;
+        }
+        if (k > (Zsize - 1)){
+            k = k - Zsize;            
+            k1 = k1 - Zsize;
+        }
+        if (i == -1){
+            i = Xsize - 1;      
+        }
+        if (i < -1){
+            i = i + Xsize;
+            i1 = i1 + Xsize;        
+        }
+        if (j == -1){
+            j = Ysize - 1;      
+        }
+        if (j < -1){
+            j = j + Ysize;
+            j1 = j1 + Ysize;        
+        }
+    }
+    else if (y >= 0){
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wz = 1 - ((int) z - z);
+        k = (int) z;
+        Wy = fmod(y, 1);
+        j = (int) y;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (j == (Ysize - 1)){
+            j1 = 0;
+        }
+        if (j > (Ysize - 1)){
+            j = j - Ysize;            
+            j1 = j1 - Ysize;
+        }
+        if (i == -1){
+            i = Xsize - 1;      
+        }
+        if (i < -1){
+            i = i + Xsize;
+            i1 = i1 + Xsize;        
+        }
+        if (k == -1){
+            k = Zsize - 1;      
+        }
+        if (k < -1){
+            k = k + Zsize;
+            k1 = k1 + Zsize;        
+        }
+    }
+    else if (x >= 0){
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        Wz = 1 - ((int) z - z);
+        k = (int) z;
+        Wx = fmod(x, 1);
+        i = (int) x;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (i == (Xsize - 1)){
+            i1 = 0;
+        }
+        if (i > (Xsize - 1)){
+            i = i - Xsize;            
+            i1 = i1 - Xsize;
+        }
+        if (j == -1){
+            j = Ysize - 1;      
+        }
+        if (j < -1){
+            j = j + Ysize;
+            j1 = j1 + Ysize;        
+        }
+        if (k == -1){
+            k = Zsize - 1;      
+        }
+        if (k < -1){
+            k = k + Zsize;
+            k1 = k1 + Zsize;        
+        }
+    }
+    else{
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        Wz = 1 - ((int) z - z);
+        k = (int) z;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (i == -1){
+            i = Xsize - 1;      
+        }
+        if (i < -1){
+            i = i + Xsize;
+            i1 = i1 + Xsize;        
+        }
+        if (j == -1){
+            j = Ysize - 1;      
+        }
+        if (j < -1){
+            j = j + Ysize;
+            j1 = j1 + Ysize;        
+        }
+        if (k == -1){
+            k = Zsize - 1;      
+        }
+        if (k < -1){
+            k = k + Zsize;
+            k1 = k1 + Zsize;        
+        }
+    }
+
+    B[0] = (1-Wx)*(1-Wy)*(1-Wz)*Bx(i,j,k) + (1-Wx)*Wy*(1-Wz)*Bx(i,j1,k) + Wx*(1-Wy)*(1-Wz)*Bx(i1,j,k) + Wx*Wy*(1-Wz)*Bx(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*Bx(i,j,k1) + (1-Wx)*Wy*Wz*Bx(i,j1,k1) + Wx*(1-Wy)*Wz*Bx(i1,j,k1) + Wx*Wy*Wz*Bx(i1,j1,k1);
+    B[1] = (1-Wx)*(1-Wy)*(1-Wz)*By(i,j,k) + (1-Wx)*Wy*(1-Wz)*By(i,j1,k) + Wx*(1-Wy)*(1-Wz)*By(i1,j,k) + Wx*Wy*(1-Wz)*By(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*By(i,j,k1) + (1-Wx)*Wy*Wz*By(i,j1,k1) + Wx*(1-Wy)*Wz*By(i1,j,k1) + Wx*Wy*Wz*By(i1,j1,k1);
+    B[2] = (1-Wx)*(1-Wy)*(1-Wz)*Bz(i,j,k) + (1-Wx)*Wy*(1-Wz)*Bz(i,j1,k) + Wx*(1-Wy)*(1-Wz)*Bz(i1,j,k) + Wx*Wy*(1-Wz)*Bz(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*Bz(i,j,k1) + (1-Wx)*Wy*Wz*Bz(i,j1,k1) + Wx*(1-Wy)*Wz*Bz(i1,j,k1) + Wx*Wy*Wz*Bz(i1,j1,k1);
+
 }
 
