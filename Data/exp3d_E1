@@ -1,0 +1,495 @@
+#!/bin/csh
+
+#*************************************************************************
+#                                  p3d
+#                           Created: 2001
+#*************************************************************************
+
+# "All script is divided into three parts" --- getting files, running
+# p3d, and putting files --- and called recursively.  Call with "csh
+# exp3d_submit_nersc".
+
+# When called as a batch script, these options are used. 
+# -q: The queue.  Normal options are debug, regular, premium, and low
+# -l walltime: maximum wallclock time in form HH:MM:SS
+# -S: The shell. Overrides the user's.
+# -m: mail when job (a)borts, (b)egins, and (e)nds
+# -j: merge std(e)rr and std(o)ut into stderr file
+# Note: Number of processors is now calculated from the param file
+# and does not need to be separately entered here.
+
+#PBS -S /bin/csh
+#PBS -m abe
+#PBS -j eo
+
+# Options
+  source /etc/profile.d/modules.csh
+  module load openmpi/intel
+  set NPROC = 64
+#  set NPROC = 64
+
+  set INIT=1
+  set RECOMPILE=1
+  set RESTART_LOCAL=1
+
+  set RUN=E1
+  set NSTEPS=1961
+  set NRUNS=0
+  set FILENO=001
+
+  set RESTART_LOCALDIR = OTV24
+  set DMPDIR = 
+  set SAVDIR = 
+  set HPSSSERVER = archive
+
+# INIT determines whether the code initializes.  If = 1, it does. The
+# initialization produces the initial dump files (*.000) and the
+# executable init*.  If you restart from a dump file, it should be 0.
+# INIT is the dominant flag in that if INIT=1, the other variables
+# are reset below to be compatible with this.
+
+# RECOMPILE --- does p3d recompile?  The default (=1) does recompile.
+# To be safe on restarts (INIT=0) RECOMPILE should usually be 0 to
+# avoid inconsistencies arising from code changes. The executable p3d*
+# must exist if this flag is set to 0; this is normally the case for
+# restarts since either it is taken from HPSS (RESTART_LOCAL=0) or is
+# put in the correct directory by hand (RESTART_LOCAL=1).  RECOMPILE
+# is set =1 below if INIT=1.
+
+# RESTART_LOCAL = 1 lets the user quickly restart a previous run for
+# which the dump files are already in the scratch directory without
+# having to first download them from hpss/archive. It only matters if
+# INIT=0. For INIT=RESTART_LOCAL=0 this script will go to hpss/archive
+# and get the necessary files (looking in the DMPDIR set below).  If
+# RESTART_LOCAL=1 the user must make sure that the directory
+# $RUNROOT/$RESTART_LOCALDIR (defined below) exists; the staging/
+# directory must NOT exist.  $RESTART_LOCALDIR must contain the 
+# necessary dump files.  If $RECOMPILE=0, p3d and the param file 
+# must be there as well.
+
+
+# RUN is the name of the run.  Specifically it's the * in param_*.
+# If RECOMPILE=1, the code looks for param_$RUN in src/.
+
+# NSTEPS is the number of particle timesteps.
+
+# NRUNS is how many times the code will reloop NSTEPS timesteps.
+# If this script is being run interactively (rather than batch), this 
+# number must be 0 or NERSC will be vewy, vewy angry.  Set it 
+# not equal to 0 only if dump files at more than one time are needed.  
+# The total number of timesteps is (NRUNS+1)*NSTEPS.
+
+# FILENO is the startup dump file number.  If left blank, the default
+# is the latest found in SAVDIR.  If you want to restart from a dump
+# file other than the latest, set it to, e.g., 004; otherwise leave it 
+# blank.  If INIT = 1 any entry is ignored.
+
+
+# RESTART_LOCALDIR is the directory in which the files from which you want
+# to restart are located.  It has no effect unless RESTART_LOCAL = 1.  It is
+# assumed to be in the $RUNROOT directory.
+
+# DMPDIR is the name of the HPSS directory where all the old files
+# from which you want to restart a run are stored.  It only matters if
+# INIT = 0.
+
+# SAVDIR is the HPSS directory where you want all the files to go when your
+# run is done.
+
+# HPSSSERVER is the name of the high performance storage system on which
+# the files are stored/to be stored.  The default choice should be
+# archive, but older files and/or older users may still be using hpss.
+
+###################################################################
+
+# The default is to have make not report the details.  If wanted, this
+# can be over-ridden by uncommenting the MAKE_SILENT line in the debug
+# commands below.
+set MAKE_SILENT = '-s'
+
+# Debugging options.
+#set echo
+#set MAKE_SILENT = ''
+
+# Assume INIT is the dominant flag and set others accordingly.
+if ( $INIT == 1) then
+  set FILENO='000'
+  set RECOMPILE = 1
+  set RESTART_LOCAL = 0
+endif
+
+# The directory containing the source code.
+set ROOT=$HOME/P3D-PLASMA-PIC/p3d-3.0
+
+echo "Running on goose."
+#set RUNROOT=$SCRATCH
+set RUNROOT=/share/gander/ransom
+set MACH=goose
+set MAKEFILE=makefile-goose
+
+# A safeguard against running two jobs in the same directory at the
+# same time.  If we are: running a non-batch job, the directory which
+# we normally create and work in already exists, RESTART_LOCAL = 0, and
+# a dump file is not in the staging directory, then assume a run
+# is already going with this name and quit after mailing an error.  If
+# the first run has moved things to staging/ but not yet finished
+# saving to archive this check will fail and start another run 
+if ($?JOB_ID == 0 && -e $RUNROOT/$RUN && $RESTART_LOCAL == 0) then
+
+# The following trickery comes from the Web and deals with the
+# fact that -e does not work with wildcards.
+   ( ls $RUNROOT/$RUN/staging/p3d-???.??? > /dev/null ) >& /dev/null
+   if ( '$status' != 0 ) then
+#    mailx -s 'Directory already exists.  Run aborted.' $USER <<+
+#+
+    echo 'Directory' $RUNROOT/$RUN 'already exists.  Run aborted.'
+    exit
+  endif
+endif
+
+# Change running directory based on the RESTART_LOCAL flag.
+if ($RESTART_LOCAL == 0) then 
+  set RUNDIR=$RUNROOT/$RUN
+else
+  set RUNDIR=$RUNROOT/$RESTART_LOCALDIR
+endif
+
+# If we're not doing a batch job and a staging directory 
+# has not yet been created.
+if ($?JOB_ID == 0 && ! -e $RUNDIR/staging) then
+
+# Make directory named for the param file.
+# Reminder: $0 is shorthand for the current script.
+  if ($RESTART_LOCAL == 0) then
+    mkdir -p $RUNDIR
+  endif
+  cd $RUNDIR
+  cp -f $ROOT/runtime/$0 .
+  mkdir -p staging
+
+# If we indicated no initialization and no RESTART, go and get the files we
+# need. 
+  if ( $INIT == 0 && $RESTART_LOCAL == 0 ) then 
+
+# Work out which dumpfile needs to be extracted, if unspecified.
+    if( $FILENO == "") then
+      set FILENO = `htar -Hserver=$HPSSSERVER -tvf $DMPDIR/dump.tar | grep -o p3d-..1\.... | tail -1`
+      set FILENO = $FILENO:e
+    endif
+
+# RECOMPILE = 0 implies we do not want to recompile the code.  In that
+# case, extract p3d and a param file along with dump files.
+    if ( $RECOMPILE == 0 ) then
+      htar -Hserver=$HPSSSERVER -xvf $DMPDIR/dump.tar p3d param_$RUN
+# After extraction p3d* may not be executable.  Make it so.
+      chmod +x p3d
+    endif
+# htar does not correctly deal with wildcards as file arguments, so 
+# we cannot extract p3d-*.  Instead, generate a list of files and
+# then pass that list on for extraction.
+    set FILELIST = `htar -Hserver=$HPSSSERVER -tvf $DMPDIR/dump.tar | grep -o p3d-...\."$FILENO" `
+    htar -Hserver=$HPSSSERVER -xvf $DMPDIR/dump.tar $FILELIST
+  endif
+
+  cd $ROOT/src/prog/
+
+# Link param to the correct parameter file.  That file may either have
+# been downloaded from HPSS (if RECOMPILE = 0 and RESTART_LOCAL=0), or
+# be in $ROOT/runtime, or be in RESTART_LOCALDIR.  The bit with cmp is
+# to deal with a rare eventuality: (a) touch param_run1; (b) touch
+# param_run2; (c) compile and run run1; (d) try to compile and run
+# run2.  Without the cmp bit the makefile will not recompile at step
+# (d).  dos2unix is optional here, but converts a param file from DOS-
+# or Mac-style end-of-line characters to Unix-style.  It only should
+# only matter for runs in which param is being seen for the first
+# time.  The k option keeps the timestamp unchanged.  Similarly, the
+# tail command adds a newline to the end of a param file if one is not
+# present; without the newline bad things happen with the
+# pre-processor.
+  if ( $RECOMPILE == 0 ) then 
+    ln -fs $RUNDIR/param_$RUN param
+  else 
+    dos2unix -q -k $ROOT/runtime/param_$RUN
+    if ( `tail -c1 $ROOT/runtime/param_$RUN` != '' ) then
+      echo "" >> $ROOT/runtime/param_$RUN
+    endif
+    cmp -s $ROOT/runtime/param_$RUN param 
+    if ($status) then 
+      ln -fs $ROOT/runtime/param_$RUN param 
+      touch $ROOT/runtime/param_$RUN 
+    else
+      ln -fs $ROOT/runtime/param_$RUN param 
+    endif 
+    cp -f param $RUNDIR/param_$RUN
+    ln -fs ../$MAKEFILE makefile
+  endif
+
+# Create dummy file for particle tracking..
+  if (! -e particle_tags.txt) then
+    echo "Allocate( poi (1))" > particle_tags.txt
+    echo "poi(1)=0" >> particle_tags.txt
+  endif
+
+# Determine which code should be used
+  set HYBRID=`(cat param ; echo '#ifdef hybrid' ; echo ___hybrid___ ; echo '#endif' ) | cpp | grep ___hybrid___ | wc -l`
+  set TWOFLUID=`(cat param ; echo '#ifdef twofluid' ; echo ___twofluid___ ; echo '#endif' ) | cpp | grep ___twofluid___ | wc -l`
+
+# Find name of initialization and code executables from param file.  (This may
+# be extraneous in some cases).
+  if ( $HYBRID == 0 ) then
+    if ( $TWOFLUID == 0 ) then
+      set CODE='particle'
+      set CODENAME=p3d
+      set INITNAME=init
+      echo 'Using full-particle version.'
+    else
+      set CODE='twofluid'
+      set CODENAME=p3d-twofluid
+      set INITNAME=init-twofluid
+      echo 'Using two-fluid version.'
+    endif
+  else
+    set CODE='hybrid'
+    set CODENAME=p3d-hybrid
+    set INITNAME=init-hybrid
+    echo 'Using hybrid version.'
+  endif
+
+# Find name of movie routine.  Do a little awk magic to get rid of double
+# quotes.
+  set MOVIEHEADER = `awk '/^#define/ && / movie_header / {gsub("\"","",$3) ; print $3}' param`
+# Usually a waste, but if a new movie file is added this automatically
+# creates a symbolic link.
+  ln -fs ../$MOVIEHEADER $MOVIEHEADER
+
+# Find name of initialization routine.  compile the init routine.
+# Take care of some special cases.
+  set INITFILE = `awk '/^#define/ && / init_scheme / {print $3}' param`
+  if ($INIT == 1) then 
+    echo 'Attempting to compile init.'
+    if (-e ../$INITFILE.F90) then 
+      make $MAKE_SILENT par=$RUN initfile=$INITFILE mach=$MACH $INITNAME
+      cp -f ../$INITFILE.F90 $RUNDIR/
+    else if ($INITFILE == initperturb || $INITFILE == initperturb2) then
+      make $MAKE_SILENT par=$RUN initfile=initperturball mach=$MACH $INITNAME
+      cp -f ../initperturball.F90 $RUNDIR/
+    else if ($INITFILE == initharris || $INITFILE == initharris2) then
+      make $MAKE_SILENT par=$RUN initfile=initharrisall mach=$MACH $INITNAME
+      cp -f ../initharrisall.F90 $RUNDIR/
+    else
+      echo 'Initialization file not correctly treated by makefile'        
+      exit
+    endif
+    mv -f $INITNAME $RUNDIR/$INITNAME
+  endif
+
+# Recompile code if reqired.
+  if ( $RECOMPILE == 1 ) then
+    echo 'Attempting to compile p3d.'
+# compile with parameter file param_$RUN
+    make $MAKE_SILENT par=$RUN mach=$MACH movieheader=$MOVIEHEADER $CODENAME
+    mv -f $CODENAME $RUNDIR/$CODENAME
+# tar together everything in the src/ directory so we have a snapshot
+# of what the code looked like when the run began.  Exclude both the 
+# project directory and all files in it.
+    cd $ROOT/src
+    tar cfz $RUNDIR/staging/code.tar.gz --exclude=prog --exclude='prog/*' *
+  else
+    echo 'No p3d compilation. Old executable used.'
+  endif
+
+  cd $RUNDIR
+  set NPES=`echo 'pex*pey*pez' | cat param_$RUN - | cpp | tail -1 | bc`
+  
+  qsub -o $RUNDIR/MyJob.o -e $RUNDIR/MyJob.e  -pe orte $NPES $0 # this is nersc?
+
+endif	# PBS_JOBID=0
+
+##### END PART 1 #####
+##### BEGIN PART 2 #####
+
+# Now for the batch job portion.  Will only run if called as a batch
+# job and the previous run (if any) didn't crash.
+if ($?JOB_ID) then
+
+  cd $RUNDIR
+
+# compute number of PEs
+  set NPES=`echo 'pex*pey*pez' | cat param_$RUN - | cpp | tail -1 | bc`
+
+# Determine which code should be used.  This is a repeat of code used
+# above; the information is needed for both the shell and batch
+# scripts.
+  set HYBRID=`(cat param_$RUN ; echo '#ifdef hybrid' ; echo ___hybrid___ ; echo '#endif' ) | cpp | grep ___hybrid___ | wc -l`
+  set TWOFLUID=`(cat param_$RUN ; echo '#ifdef twofluid' ; echo ___twofluid___ ; echo '#endif' ) | cpp | grep ___twofluid___ | wc -l`
+
+  if ( $HYBRID == 0 ) then
+    if ( $TWOFLUID == 0 ) then
+      set CODE='particle'
+      set CODENAME=p3d
+      set INITNAME=init
+      echo 'Using full-particle version.'
+    else
+      set CODE='twofluid'
+      set CODENAME=p3d-twofluid
+      set INITNAME=init-twofluid
+      echo 'Using two-fluid version.'
+    endif
+  else
+    set CODE='hybrid'
+    set CODENAME=p3d-hybrid
+    set INITNAME=init-hybrid
+    echo 'Using hybrid version.'
+  endif
+
+  if ($INIT == 1) then
+# Initialize
+    echo "Run $INITNAME on $NPES PEs, stdout redirected to init.stdout."
+    #aprun -n $NPES ./$INITNAME > init.stdout # NERSC
+    time mpirun --mca pml ob1 --mca btl tcp,self -np $NPROC ./init > init.stdout
+# Move these here rather than later since they may not exist in other
+# branches of the script.
+    mv $INITNAME staging/
+    mv init.stdout staging/
+  endif 
+
+# Begin loop of multiple runs.
+  while ($NRUNS >= 0)
+
+# Compute highest start-up file number.  We can then restart from the
+# correct position.
+    if ( $FILENO == "" ) then
+      set FILENO=`ls p3d-001.??? | tail -1`
+      set FILENO=$FILENO:e
+    endif
+
+# run p3d
+    set STDOUT="p3d.stdout.$FILENO"
+    echo "Run $CODENAME on $NPES PEs, start-file $FILENO, stdout to $STDOUT."
+    #aprun -n $NPES ./$CODENAME $FILENO $NSTEPS >& $STDOUT
+    time mpirun --mca pml ob1 --mca btl tcp,self -np $NPROC ./p3d $FILENO $NSTEPS  >& $STDOUT
+
+# The original version created only one movie file per variable.
+# Later additions made one per z-processor-level (pez) per variable.
+# Still later went back to the original version.  Deal with both here.
+    foreach movvar (bx by bz ex ey ez jx jy jz rho ni ne log jex jey jez jix jiy jiz pe pi n pexx peyy pezz pexy pexz peyz pixx piyy pizz pixy piyz pixz jix2 jiy2 jiz2 ni2 pixx2 piyy2 pizz2 pixy2 piyz2 pixz2 qex qey qez qix qiy qiz qix2 qiy2 qiz2)
+      if (-e $movvar) then
+        mv -f $movvar staging/movie.$movvar.$FILENO
+      else if (-e $movvar.00) then
+# How many movie frames per file
+        set numframes = `grep -c "movie output" p3d.stdout.$FILENO`
+# How big is each movie frame.  Note that the .xx tail tacitly assumes
+# there are at most 100 processors in the z direction.
+        set file = `ls -l $movvar.00`
+        set size = $file[5]
+        @ size = $size / $numframes
+# This is the tricky part. The orginals are of the form, e.g., bx.00.
+# Split each into timeslices that are called new.bxaa, new.bxab, etc.
+# Then rename them to bxaa.00, bxab.00 and so on.  Why the gymnastics?
+# By reversing the original suffix and the suffix added by split the
+# files are in alphanumeric order for easy catting.
+        foreach file ( $movvar.?? )
+          split -b $size $file new.${file:r}
+          set root = $file:e
+          foreach newfile (new.*)
+            mv $newfile $newfile:e.$root
+          end
+        end
+# Reassembly.
+        cat $movvar??.?? > staging/movie.$movvar.$FILENO
+# Trash removal
+        if (-e staging/movie.$movvar.$FILENO) then 
+          rm -f $movvar.??
+          rm -f $movvar??.??
+        endif
+      endif
+    end
+
+    mv -f p3d.stdout.$FILENO staging/
+
+    set FILENOP1 = `ls p3d-001.??? | tail -1 `
+    set FILENOP1 = $FILENOP1:e
+
+# Decrement number of runs, increment file counter.
+    @ NRUNS-- 
+    set FILENO = $FILENOP1
+  end
+
+# Move all the dump files.  The initial one will be returned below so as not
+# to clutter HPSS.
+
+  mv p3d-???.??? staging/
+  mv p3d staging/
+  mv param* staging/
+  mv *.data staging/
+
+# Put a copy of this script in staging as well.
+  cp $0 staging/.
+
+  echo "Exiting batchjob."
+  exit 1
+endif
+
+
+##### END PART 2 #####
+##### BEGIN PART 3 #####
+
+# If we're not doing a batch job and the run has completed or crashed,
+# run this part to save data to HPSS.
+if ($?PBS_JOBID == 0) then
+
+# Stolen from the Web.  As above, is necessary since -e does not 
+# deal with wildcards well.
+  ( ls $RUNROOT/$RUN/staging/p3d.stdout.* > /dev/null ) >& /dev/null
+  set STAT1 = "$status"
+  ( ls $RUNROOT/$RESTART_LOCALDIR/staging/p3d.stdout.* > /dev/null ) >& /dev/null
+  set STAT2 = "$status"
+# Logical structure says: if [ (not restart AND run is done) OR 
+# (restart AND run is done) ].
+  if ( ($RESTART_LOCAL == 0 && $STAT1 == 0 ) || ($RESTART_LOCAL == 1 && $STAT2 == 0 ) )then
+
+    if ( `hsi "ls $SAVDIR" |& grep "No such file or directory" | wc -l` != 1) then
+       echo "SAVDIR already exists on storage. The script will stop now to prevent"
+       echo "accidental overwriting of data."
+       exit 1
+    endif
+
+    cd $RUNDIR/staging
+
+# Find the lowest dump file and move it to somewhere it will be
+# ignored (in case it is needed later).
+    set INITDUMPNO = `ls p3d-001.??? | head -1 `
+    set INITDUMPNO = $INITDUMPNO:e
+  
+    mv p3d-???.$INITDUMPNO ../
+
+# Temporarily keep status file out of directory going to HPSS.
+    set STATUSFILE = hpssstatus
+    echo 'Beginning to save files on HPSS' > ../$STATUSFILE
+
+# Despite what this command implies, hsi doesn't like writing to
+# STATUSFILE for some reason.  The output goes to standard error
+# instead.
+    hsi -s $HPSSSERVER <<+ >> ../$STATUSFILE
+      mkdir -p $SAVDIR
+      quit
++
+    echo 'Directory' $SAVDIR' may have been made.' >> ../$STATUSFILE
+
+# Variable containing a list of all files but the dump files.
+    set TEMPVAR = `ls -I 'p3d-???.*' `
+
+# Put the dump files in one tar and everything else in another
+    htar -Hserver=$HPSSSERVER -cf $SAVDIR/allbutdump.tar $TEMPVAR
+    htar -Hserver=$HPSSSERVER -cf $SAVDIR/dump.tar p3d-???.* param* p3d
+
+  endif
+endif 
+##### END PART 3 #####
+
+exit 1
+
+
+
+
+
