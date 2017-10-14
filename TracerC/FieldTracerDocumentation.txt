@@ -15,17 +15,17 @@ User Methods:
     are options in the code called cstride and rstride which both = 10 and can
     be lowered to increase this resolution
 
-    TraceField(SIMds, B, Start, ds, passes, Saves = None)
+    TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None)
         * recursive allowing user to quickly trace multiple points
         - SIMds is the real space ds of the simulation being traced used to plot in real space indexing
         - B is a length 2 or 3 vector of the magnetic field data
         - Start is a length 2 or 3 vector of the starting location in real space
         - ds is the differential step of the trace in real space, must be between 0 and 1
-            large ds may cause unstable traces
+            large ds may cause unstable traces, must be empty for 2D, must be included for 3D
         - WARNING: once inside the method ds is converted to index space, keep this
             in mind when debugging
         - passes is a rough estimate of the number of passes through the simulation
-            can be any size
+            can be any size, must be empty for 2D, must be included for 3D
         - Saves is an optional vector of string path names to save the X, Y and Z data
         OPTIONS - 
             TraceField([Bx, By], [X, Y]):
@@ -88,6 +88,8 @@ User Methods:
             SeparatorSlice('SepX.npy', 'SepY.npy', 'SepZ.npy', 2048, 1024, 1024):
                 Offers the user the option to slice the separator at any integer point along
                 the X or Z axis, and plots Xline projections down the X and Y axes.
+		WARNING: Prompts for X and Z slice values expect a grid space value not real space,
+			this is why the value must be an integer
             SeparatorSlice('SepX.npy', 'SepY.npy', 'SepZ.npy', 2048, 1024, 1024, [Bx, By, Bz]):
                 Also traces a point starting just above and just below the separator sheet
                 at points [0, SepY[0] +/- .3, 0] and then creates a puncture plot of these two

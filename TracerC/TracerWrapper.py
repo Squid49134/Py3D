@@ -8,9 +8,11 @@ import matplotlib as mpt
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import AutoMinorLocator
-from Py3D.sub import load_movie
 import ctypes
 import os
+import sys
+sys.path.append('/home/ransom/Py3D')
+from py3d.sub import *
 from numpy.ctypeslib import ndpointer
 
 __all__ = ['TraceField', 'MapSeparator', 'SeparatorLoader', 'SeparatorSlice']
@@ -34,9 +36,7 @@ _lib = ctypes.cdll.LoadLibrary(pathlib)
 def TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None):
     # Checking length of B vector, for 2D, 3D, or 3D with E interp
     try:
-        if ((len(B) == 2) or (len(B) == 3) or (len(B) == 6)):
-            0
-        else:
+        if ((len(B) != 2) and (len(B) != 3) and (len(B) == 6)):
             print('invalid B')
             return 0
     except:
@@ -47,16 +47,14 @@ def TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None):
     if ((len(B) == 3) or (len(B) == 6)):
         # Checking the validitiy of provided arguments
         try:
-            try:
-                Saves[0] == 'String'
-                Saves[1] == 'String'
-                Saves[2] == 'String'
-            except:
-                if (Saves == None):
-                    1
-                else:
-                    print('invalid arguments')
-                    return 0
+            Saves[0] == 'String'
+            Saves[1] == 'String'
+            Saves[2] == 'String'
+        except:
+            if (Saves != None):
+                print('invalid arguments')
+                return 0
+        try:
             if (len(B) == 6):
                 B[3][0,0,0] * B[4][0,0,0] * B[5][0,0,0]
                 assert(B[3].shape == B[4].shape == B[5].shape == B[0].shape)
@@ -141,7 +139,7 @@ def TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None):
             assert(B[0].shape == B[1].shape)
             assert(0 <= Start[0]/SIMds <= B[0].shape[0] - 1)
             assert(0 <= Start[1]/SIMds <= B[0].shape[1] - 1)
-            assert(0 < ds < 1)
+            assert(ds == None)
         except:
             print('invalid arguments')
             return 0
@@ -174,7 +172,6 @@ def TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None):
                         Start[1] = abs(float(raw_input('Enter Y value of starting position: \n')))
                         assert(0 <= Start[0]/SIMds <= B[0].shape[0] - 1)
                         assert(0 <= Start[1]/SIMds <= B[0].shape[1] - 1)
-                        assert(0 < ds < 1)
                         break
                     except:
                         print('invalid input try again \n')
@@ -264,7 +261,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
         np.save(Saves[2], Line_Z)
         print('Saved.')
     except:
-        1
+        pass
         
     # Plotting the basic line trace projections which can be done quickly 
     # since no colormeshes are involved
@@ -327,7 +324,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     # Resetting the tick labels
     ax.set_xticklabels(LabelList)
     
@@ -336,7 +333,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax2.set_xticklabels(LabelList)
     
     LabelList = ax3.get_xticklabels()
@@ -344,7 +341,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax3.set_xticklabels(LabelList)
     
     LabelList = ax.get_yticklabels()
@@ -352,7 +349,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax.set_yticklabels(LabelList)
     
     LabelList = ax2.get_yticklabels()
@@ -360,7 +357,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax2.set_yticklabels(LabelList)
     
     LabelList = ax3.get_yticklabels()
@@ -368,7 +365,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax3.set_yticklabels(LabelList)
     
     # If E is included plot Einterp per step
@@ -500,7 +497,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
                 try: 
                     LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                 except:
-                    1
+                    pass
             # Resetting the tick labels
             ax4.set_xticklabels(LabelList)
             
@@ -509,7 +506,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
                 try: 
                     LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                 except:
-                    1
+                    pass
             ax4.set_yticklabels(LabelList)
             
             LabelList = ax4.get_zticklabels()
@@ -517,7 +514,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
                 try: 
                     LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                 except:
-                    1
+                    pass
             ax4.set_zticklabels(LabelList)
             
             fig2.tight_layout()            
@@ -587,7 +584,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
                 try: 
                     LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                 except:
-                    1
+                    pass
             # Resetting the tick labels
             ax5.set_xticklabels(LabelList)
             
@@ -596,7 +593,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
                 try: 
                     LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                 except:
-                    1
+                    pass
             ax6.set_xticklabels(LabelList)
             
             LabelList = ax7.get_xticklabels()
@@ -604,7 +601,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
                 try: 
                     LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                 except:
-                    1
+                    pass
             ax7.set_xticklabels(LabelList)
             
             LabelList = ax5.get_yticklabels()
@@ -612,7 +609,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
                 try: 
                     LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                 except:
-                    1
+                    pass
             ax5.set_yticklabels(LabelList)
             
             LabelList = ax6.get_yticklabels()
@@ -620,7 +617,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
                 try: 
                     LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                 except:
-                    1
+                    pass
             ax6.set_yticklabels(LabelList)
             
             LabelList = ax7.get_yticklabels()
@@ -628,7 +625,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
                 try: 
                     LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                 except:
-                    1
+                    pass
             ax7.set_yticklabels(LabelList)            
             
             break
@@ -711,7 +708,7 @@ def FieldLine_2D(SIMds, Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     # Resetting the tick labels
     ax.set_xticklabels(LabelList)
     
@@ -720,7 +717,7 @@ def FieldLine_2D(SIMds, Xinit, Yinit, B1, B2, Xsize, Ysize, ds, Steps):
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax.set_yticklabels(LabelList)
     
     plt.show()                
@@ -795,19 +792,19 @@ def MapSeparator(SIMds, Saves, B, Ystart, UPorLOW, N = 1):
         print('OVERWRITE WARNING, Save name already exists')
         return 0
     except:
-        1
+        pass
     try:
         np.load(Saves[1])
         print('OVERWRITE WARNING, Save name already exists')
         return 0
     except:
-        1
+        pass
     try:
         np.load(Saves[2])
         print('OVERWRITE WARNING, Save name already exists')
         return 0
     except:
-        1
+        pass
     
     # Converting to grid space
     Ystart = Ystart/SIMds
@@ -931,14 +928,18 @@ def SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B =
         assert(int(Ysize))
         assert(int(Zsize))
     except:
-        try:
-            assert(B == None)
-            assert(int(Xsize/SIMds))
-            assert(int(Ysize/SIMds))
-            assert(int(Zsize/SIMds))
-        except:
+        if (B == None):
+            pass
+        else:
             print('invalid arguments')
             return 0
+    try:
+        assert(int(Xsize/SIMds))
+        assert(int(Ysize/SIMds))
+        assert(int(Zsize/SIMds))
+    except:
+        print('invalid arguments')
+        return 0
     
     # Ensuring these are integers and converting to grid space
     Xsize = int(Xsize/SIMds)
@@ -1009,7 +1010,7 @@ def SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B =
                     try: 
                         LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                     except:
-                        1
+                        pass
                 # Resetting the tick labels
                 ax.set_xticklabels(LabelList)
                 
@@ -1018,14 +1019,13 @@ def SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B =
                     try:
                         LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                     except:
-                        1
+                        pass
                 ax.set_yticklabels(LabelList)
                 
                 # If B is included, plots a puncture plot of the slice by
                 # tracing a line started right above and another right below
                 # the separator
-                try:
-                    Bz[1]
+                if (B != None):
                     
                     # The slice / puncture plot
                     fig2 = plt.figure(2)
@@ -1063,7 +1063,7 @@ def SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B =
                         try: 
                             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                         except:
-                            1
+                            pass
                     # Resetting the tick labels
                     ax2.set_xticklabels(LabelList)
                     
@@ -1072,11 +1072,8 @@ def SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B =
                         try: 
                             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                         except:
-                            1
+                            pass
                     ax2.set_yticklabels(LabelList)
-                                   
-                except:
-                    1
                 
                 print('\n' + 'Finding XLine...')
                 # Finding and plotting the X line of the separator
@@ -1155,7 +1152,7 @@ def SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B =
                     try: 
                         LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                     except:
-                        1
+                        pass
                 # Resetting the tick labels
                 ax.set_xticklabels(LabelList)
                 
@@ -1164,14 +1161,13 @@ def SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B =
                     try: 
                         LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                     except:
-                        1
+                        pass
                 ax.set_yticklabels(LabelList)                
                 
                 # If B is included, plots a puncture plot of the slice by
                 # tracing a line started right above and another right below
                 # the separator
-                try:
-                    Bz[1]
+                if (B != None):
                     
                     # The slice / puncture plot
                     fig2 = plt.figure(2)
@@ -1209,7 +1205,7 @@ def SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B =
                         try: 
                             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                         except:
-                            1
+                            pass
                     # Resetting the tick labels
                     ax2.set_xticklabels(LabelList)
                     
@@ -1218,11 +1214,8 @@ def SeparatorSlice(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B =
                         try: 
                             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
                         except:
-                            1
+                            pass
                     ax2.set_yticklabels(LabelList)                    
-                    
-                except:
-                    1
                 
                 print('\n' + 'Finding XLine...')
                 # Finding and plotting the X line of the separator
@@ -1399,7 +1392,7 @@ def XLine(SIMds, SepX, SepY, SepZ, Xsize, Ysize, Zsize):
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     # Resetting the tick labels
     ax3.set_xticklabels(LabelList)
     
@@ -1408,7 +1401,7 @@ def XLine(SIMds, SepX, SepY, SepZ, Xsize, Ysize, Zsize):
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax3.set_yticklabels(LabelList)
     
     LabelList = ax4.get_xticklabels()
@@ -1416,7 +1409,7 @@ def XLine(SIMds, SepX, SepY, SepZ, Xsize, Ysize, Zsize):
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax4.set_xticklabels(LabelList)
     
     LabelList = ax4.get_yticklabels()
@@ -1424,7 +1417,7 @@ def XLine(SIMds, SepX, SepY, SepZ, Xsize, Ysize, Zsize):
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax4.set_yticklabels(LabelList)
     
 
@@ -1441,15 +1434,18 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
         assert(int(Ysize/SIMds))
         assert(int(Zsize/SIMds))
     except:
-        # If B = None the first check will throw an error
-        try:
-            assert(B == None)
-            assert(int(Xsize/SIMds))
-            assert(int(Ysize/SIMds))
-            assert(int(Zsize/SIMds))
-        except:
+        if (B == None):
+            pass
+        else:
             print('invalid arguments')
             return 0
+    try:
+        assert(int(Xsize/SIMds))
+        assert(int(Ysize/SIMds))
+        assert(int(Zsize/SIMds))
+    except:
+        print('invalid arguments')
+        return 0
             
     # Ensuring these values are integers and converting to grid space
     Xsize = int(Xsize/SIMds)
@@ -1523,7 +1519,7 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     # Resetting the tick labels
     ax.set_xticklabels(LabelList)
     
@@ -1532,7 +1528,7 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax2.set_xticklabels(LabelList)
     
     LabelList = ax3.get_xticklabels()
@@ -1540,7 +1536,7 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax3.set_xticklabels(LabelList)
     
     LabelList = ax.get_yticklabels()
@@ -1548,7 +1544,7 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax.set_yticklabels(LabelList)
     
     LabelList = ax2.get_yticklabels()
@@ -1556,7 +1552,7 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax2.set_yticklabels(LabelList)
     
     LabelList = ax3.get_yticklabels()
@@ -1564,14 +1560,13 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
         try: 
             LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
         except:
-            1
+            pass
     ax3.set_yticklabels(LabelList)
     
     # If B is included, plots the separator in 3D over colormeshes of |B|as 
     # well as a large projection of the separator down the Z axis over a 
     # colormesh of |B|, this takes extra time
-    try:
-        Bz[0,0,0]
+    if (B != None):
         
         print('\n'+'Calculating |B|...')
         
@@ -1657,7 +1652,7 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
             try: 
                 LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
             except:
-                1
+                pass
         # Resetting the tick labels
         ax4.set_xticklabels(LabelList)
         
@@ -1666,7 +1661,7 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
             try: 
                 LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
             except:
-                1
+                pass
         ax4.set_yticklabels(LabelList)
         
         LabelList = ax4.get_zticklabels()
@@ -1674,7 +1669,7 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
             try: 
                 LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
             except:
-                1
+                pass
         ax4.set_zticklabels(LabelList)
         
         fig2.tight_layout()
@@ -1713,7 +1708,7 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
             try: 
                 LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
             except:
-                1
+                pass
         # Resetting the tick labels
         ax5.set_xticklabels(LabelList)
         
@@ -1722,11 +1717,8 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
             try: 
                 LabelObj.set_text(str(float(LabelObj.get_text())*SIMds))
             except:
-                1
+                pass
         ax5.set_yticklabels(LabelList)
-        
-    except:
-        1
 
     plt.show()
     
@@ -1736,12 +1728,11 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
 
 # 2D
 
-#d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
-#Bx = d['by']
-#By = d['bx']
+d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
+Bx = d['by']
+By = d['bx']
 
-#TraceField(.05, [Bx, By], [50, 50])
-
+TraceField(.05, [Bx, By], [50, 50])
 
 # 3D
 
@@ -1750,27 +1741,38 @@ BX =  np.load('/scratch-fast/asym030/bx.npy')
 BY =  np.load('/scratch-fast/asym030/by.npy')
 BZ =  np.load('/scratch-fast/asym030/bz.npy')
 
-#EX =  np.load('/scratch-fast/asym030/ex.npy')
-#EY =  np.load('/scratch-fast/asym030/ey.npy')
-#EZ =  np.load('/scratch-fast/asym030/ez.npy')
+EX =  np.load('/scratch-fast/asym030/ex.npy')
+EY =  np.load('/scratch-fast/asym030/ey.npy')
+EZ =  np.load('/scratch-fast/asym030/ez.npy')
 print('Loaded')
 
 #SepY0 = np.load('LowerSepY.npy')[0]
+#raw_input("Continue?")
 #TraceField(.025, [BX, BY, BZ], [0, SepY0, 0], .075, 1.5)
+#raw_input("Continue?")
 #TraceField(.025, [BX, BY, BZ], [12.5, 5, 12.5], .0125, 100, ['TraceX6.npy', 'TraceY6.npy', 'TraceZ6.npy'])
-#TraceField(.025, [BX, BY, BZ, EX, EY, EZ], [25.6, 12.8, 12.8], .0125, 100)
+#raw_input("Continue?")
+TraceField(.025, [BX, BY, BZ, EX, EY, EZ], [25.6, 12.8, 12.8], .0125, 100)
+raw_input("Continue?")
 TraceField(.025, [BX, BY, BZ], [25.6, 12.8, 12.8], .0025, 100)
 
-#SeparatorSlice(.025, 'LowerSepX.npy', 'LowerSepY.npy', 'LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
-#SeparatorSlice(.025, 'UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 51.2, 25.6, 25.6)
+raw_input("Continue?")
+SeparatorSlice(.025, 'LowerSepX.npy', 'LowerSepY.npy', 'LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
+raw_input("Continue?")
+SeparatorSlice(.025, 'UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 51.2, 25.6, 25.6)
 
-#SeparatorLoader(.025, 'LowerSepX.npy','LowerSepY.npy','LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
+
 
 
 # 318*.025 for Upper
 # 150*.025 for Lower
-#MapSeparator(.025, ['SepX10.npy', 'SepY10.npy', 'SepZ10.npy'], [BX, BY, BZ], 8, 'Upper', 16)
-#MapSeparator(.025, ['SepX9.npy', 'SepY9.npy', 'SepZ9.npy'], [BX, BY, BZ], 3.75, 'Lower', 8)
+raw_input("Continue?")
+MapSeparator(.025, ['SepX11.npy', 'SepY11.npy', 'SepZ11.npy'], [BX, BY, BZ], 8, 'Upper', 16)
+raw_input("Continue?")
+MapSeparator(.025, ['SepX9.npy', 'SepY9.npy', 'SepZ9.npy'], [BX, BY, BZ], 3.75, 'Lower', 8)
 
-#SeparatorLoader(.025, 'SepX10.npy','SepY10.npy','SepZ10.npy', 51.2, 25.6, 25.6)
+raw_input("Continue?")
+SeparatorLoader(.025, 'LowerSepX.npy','LowerSepY.npy','LowerSepZ.npy', 51.2, 25.6, 25.6)
+raw_input("Continue?")
+SeparatorLoader(.025, 'LowerSepX.npy','LowerSepY.npy','LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
 
