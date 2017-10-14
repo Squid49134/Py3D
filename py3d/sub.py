@@ -4,13 +4,13 @@ from scipy.io.idl import readsav
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import AutoMinorLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from Py3D.movie import Movie
-from Py3D.dumpID import DumpID
+from .movie import Movie
+from .dumpID import DumpID
 
 __all__ = ['set_local', 'ims', 'find_xpt', 'var_at', 'ims_subplot',
            'load_movie', 'check_energy_conservation', 'multi_color',
            'show_energy', 'calc_psi', 'readsave', 'date_file_prefix',
-           'rs3d', 'rotate_ten']
+           'rs3d', 'rotate_ten', 'load_parts']
 
 #======================================================
 def set_local(d, loc, overwrite=False):
@@ -87,10 +87,10 @@ def ims3D(d,
         xlab = r'$X (d_i)$'; ylab = r'$Y (d_i)$'
         ext = [d['xx'][0], d['xx'][-1], d['yy'][0], d['yy'][-1]]
     else:
-        err_msg = 'slice[0] {} not understood! must be value between 0-2\n'\
-                  'where 0 -> Y,Z plane\n'\
-                  '      1 -> Z,x plane\n'\
-                  'and   2 -> X,Y plane'
+        err_msg = ('slice[0] {} not understood! must be value between 0-2\n'
+                  'where 0 -> Y,Z plane\n'
+                  '      1 -> Z,x plane\n'
+                  'and   2 -> X,Y plane')
         print err_msg.format(slice[0])
         raise IOError()
     
@@ -108,23 +108,34 @@ def ims(d,
         cbar=None,
         cont=None,
         no_draw=None,
-        ctargs={},
+        ctargs=None,
         **kwargs):
     """
     A wrapper function for imshow to do most tedious stuff for P3D simulations
     
-    Args:
-        d (dict): A dictionary with relevent simualtion information.
+    Parameters
+    ==========
+        d : dict
+            A dictionary with relevent simualtion information.
             d must contain xx and yy so it will know the dimensions to plot
-        k (str or np.array): Either a str of a varible contained within d or 
-        a 2D numpy array of size (len(d['xx']), len(d['yy'])) that will be 
-        plotted.
-        cbar (bool): If true, then auto generate a colorbar
-        cont (bool): If true, then auto generate contours
-        no_draw (bool): If ture, do not call matplotlib.pylab.draw(), can
-            speed up the plotting process
-        ctargs (dict): A dictonary to pass extra argumens to the contour
-            call, so you can add more lines or set the elvels explicitly.
+
+        k : str or np.array
+            Either a str of a varible contained within d or a 2D numpy array 
+            of size (len(d['xx']), len(d['yy'])) that will be plotted.
+
+        cbar : bool
+            If true, then auto generate a colorbar
+
+        cont : bool
+            If true, then auto generate contours
+
+        no_draw :bool
+            If ture, do not call matplotlib.pylab.draw(), can speed up the 
+            plotting process
+
+        ctargs : dict
+            A dictonary to pass extra argumens to the contour call, 
+            so you can add more lines or set the elvels explicitly.
 
     """
 
@@ -134,10 +145,12 @@ def ims(d,
     else:
         plt.sca(ax)    # Set Current Axis
 
-    if type(k) is str: plt_val = d[k]
-    else               : plt_val = k
-    plt_val = plt_val.T
+    if type(k) is str: 
+        plt_val = d[k]
+    else: 
+        plt_val = k
 
+    plt_val = plt_val.T
 
     xlab = r'$X (d_i)$'
     ylab = r'$Y (d_i)$'
@@ -148,6 +161,7 @@ def ims(d,
            d['yy'][0],
            d['yy'][-1]]
 
+    if ctargs is None: ctargs = {}
     return_tuple = _ims(d,plt_val,xlab,ylab,ext,ax,extent,cbar,
                          cont,no_draw,ctargs,**kwargs)
 
@@ -169,7 +183,6 @@ def _ims(d,
          no_draw,
          ctargs,
          **kwargs):
-
 
     if kwargs.has_key('cmap'): cmap=kwargs.pop('cmap')
     else:                      cmap='PuOr'
@@ -310,22 +323,23 @@ def var_at(fdic, key, r0, ordflg='idl'):
 #======================================================
 
 def load_movie(num=None,
-               param=None,
+               param_file=None,
                path='./',
-               vrs='all',
+               mvars='all',
                time=None,
                slc=None,
-               name_style='p3d'):
+               name_style='p3d',
+               verbose=False):
 
     """ Parameters
         ----------
         num : int
             Moving number to load. If None it will ask
-        param : str
+        param_file : str
             name of param file, If None it will ask.
         path : str
             where movie files are. (Assumese in local dir)
-        vrs (vars) : str or array of strs
+        mvars (vars) : str or array of strs
             what varibles to load ['bx', 'by', 'bz', ..],
             Assumes that you want to load 'all'
         slc (slice) : slice
@@ -336,26 +350,30 @@ def load_movie(num=None,
             what time to load the move from. If None it will ask
         name_style : str ('p3d' or 'tulasi' or 'unfinished')
             Tulasi's version of the code has different nameing convention
-            for movie files, so you have to used the UnfinsihedMovie
-            object to get this to work.
+            for movie files.
     """
 
-    if name_style is 'p3d':
-        return Movie(num,param,path).get_fields(vrs,time,slc)
-    elif name_style.lower() in ['tulasi', 'unfinished'] :
-        from Py3D.movie import UnfinishedMovie
-        return UnfinishedMovie(param,path).get_fields(vrs,time,slc)
-
+    return Movie(num, param_file, path, name_style,
+                 verbose).get_fields(mvars, time, slc)
 
 
 #======================================================
 
-def gen_distro(species,
-               r=[1.,1.],
-               dx=[.5,.5],
+def load_parts(r0=None,
+               dx=None,
                par=False,
-               **vdargs):
-    raise NotImplementedError()
+               **dmpkwargs):
+    if r0 is None:
+        r0 = raw_input('Enter center of box(x0, y0, [z0]):\n> ')
+        r0 = np.array(r0.split(',')).astype(float)
+
+    if dx is None:
+        dx = raw_input('Energy widths of box(dx, dy, [dz]):\n> ')
+        dx = np.array(dx.split(',')).astype(float)
+
+    did = DumpID(**dmpkwargs)
+
+    return did.get_part_in_box(r=r0, dx=dx, par=par)
     
 #======================================================
 
@@ -387,13 +405,9 @@ def check_energy_conservation(mov_num=0,
     try:
         param_file = glob.glob('param*')[0]
 
-        if use_UFM:
-            from Py3D.movie import UnfinishedMovie
-            print 'Loading temperatures from movies...'
-            M = UnfinishedMovie(param_file)
-        else:
-            print 'Loading temperatures from movie.???.000...'
-            M = Movie(0,param_file)
+        print 'Loading temperatures from movies...'
+        M = Movie(0,param_file)
+
         slc = (2,0) if M.param['nz']*M.param['pez'] > 1 else None
 
         if final_time < 0 : final_time += M.ntimes #allows for negetive indexing
@@ -490,15 +504,14 @@ def check_energy_conservation(mov_num=0,
 
 #======================================================
 
-def multi_color(slice=None, draw=False):
-
-    """ A method for Mike!. It coppies his multi gray
-        IDL code.
+def multi_color(slc=None, draw=False, **movkwargs):
+    """ A function to display all of the simulation field outputs at once
+        for a number of different times.
 
         Parameters
         ----------
-        slice : None || (axis, offset)
-            Only relevent for 3D data. Which slice (plane) to plot.
+        slc : None || (axis, offset)
+            Only relevent for 3D data. Which slc (plane) to plot.
             axis : int 0,1,2
                 Which plane do you want to see? 
                 0 -> (y,z), 1 -> (x,z), 2 -< (x,y)
@@ -508,42 +521,62 @@ def multi_color(slice=None, draw=False):
         draw : bool
             if True it will plot and draw every subplot in real time
             Note: if set to True it is VERY slow
+
+        movkwargs : kwargs/dict
+            key word arguments for the Movie class
+            
+        Returns
+        -------
+        ax : list of matplotlib.axes
+        im : list of matplotlib.image.AxesImage
     """
-    M,t,fig,istate = _movie_start_plot()
+    M, time, fig, istate = _movie_start_plot(**movkwargs)
+    called_tight_layout = False
 
     # This is going to sound crazy but there seems to be a BIG time
-    # difference in loading the movie files depending on if the slice
+    # difference in loading the movie files depending on if the slc
     # is a list or a tuple (like a factor of 10 faster for tuple)
-    if slice is None: 
-        slice=(2,0)
+    if slc is None: 
+        slc=(2,0)
     else:
         xyz = M._get_xyz_vectors()
-        k = 2*('xyz'[slice[0]])
-        s2 = np.argmin(np.abs(xyz[k] - slice[1]))
-        slice = (slice[0], s2)
+        k = 2*('xyz'[slc[0]])
+        s2 = np.argmin(np.abs(xyz[k] - slc[1]))
+        slc = (slc[0], s2)
 
+    for t in time:
+        fig.clf()
+        print 'Making subplots...'
+        ax = [fig.add_subplot(6,5,c+1) for c in range(6*5)]
+        im = []
+        for a,k in zip(ax,M.movie_vars):
 
-    print 'Slice = ',slice
-    print 'Making subplots...'
-    ax = [fig.add_subplot(6,5,c+1) for c in range(6*5)]
-    im = []
-    for a,k in zip(ax,M.movie_vars):
+            print 'loading ',k
+            d = M.get_fields(k, time=t, slc=slc)
 
-        print 'loading ',k
-        d = M.get_fields(k, time=t, slice=slice)
+            print 'plotting ',k
+            ttl = "{}: {:.2f}, {:.2f}"
+            ttl = ttl.format(k, d[k].min(), d[k].max())
 
-        print 'plotting ',k
-        ttl = k
-        if M.param['pez']*M.param['nz'] > 1:
-            im.append(ims3D(d,k,a, no_draw=not draw, slice=slice))
-            ttl+= ', {}={}'.format('xyz'[slice[0]], slice[1])
-            a.set_title(ttl,size=8)
+            if M.param['pez']*M.param['nz'] > 1:
+                im.append(ims3D(d,k,a, no_draw=not draw, slice=slc))
+                ttl+= ', {}={}'.format('xyz'[slc[0]], slc[1])
+                a.set_title(ttl,size=8)
 
-        else:
-            im.append(ims(d,k,a, no_draw=not draw))
-            a.set_title(ttl,size=8)
-    
-    _movie_end_plot(istate)
+            else:
+                im.append(ims(d,k,a, no_draw=not draw))
+                a.set_title(ttl,size=8)
+            a.set_xlabel('')
+            a.set_ylabel('')
+        
+        #_movie_end_plot(istate)
+        plt.draw()
+        if not called_tight_layout:
+            plt.tight_layout()
+            called_tight_layout = True
+
+        _ = raw_input('Hit return to see next time.')
+
     return ax,im
 
 #======================================================
@@ -590,6 +623,7 @@ def three_plane(v, r0=[0., 0., 0.], **imsargs):
     _x2 = max([xyz[k][-1] for k in xyz])
     _x1 = min([xyz[k][0]  for k in xyz])
     _x = np.linspace(_x1,_x2,200)
+
     for a,y,x in zip(ax, [0,1,0], [1,2,2]):
         a.plot(0.*_x + r0[0], _x, 'k--')
         a.plot(_x, 0.*_x + r0[1], 'k--')
@@ -613,14 +647,21 @@ def three_plane(v, r0=[0., 0., 0.], **imsargs):
 
 #======================================================
 
-def _movie_start_plot():
-    M = Movie()
-    t = raw_input('Enter time between {}-{}: '.format(0,M.ntimes-1))
-    t = int(t)
+def _movie_start_plot(**movargs):
+    M = Movie(**movargs)
+    tstr = ("Enter either a single time or in range format "
+           "(start, stop, skip) between {}-{} : ")
+    t = raw_input(tstr.format(0,M.ntimes-1))
+
+    try:
+        t = [int(t)]
+    except ValueError:
+        t = [int(c) for c in t.split(',')]
+        t = range(*t)
 
     print 'Getting Fgiure...'
     fig = plt.gcf()
-    fig.clf()
+    #fig.clf()
     istate = plt.isinteractive
     plt.ioff()
 

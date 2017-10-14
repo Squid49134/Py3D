@@ -3,6 +3,7 @@ import pdb
 import glob
 import numpy as np
 from ._methods import load_param
+from ._methods import vprint
 from ._methods import _num_to_ext
 
 class Movie(object):
@@ -11,20 +12,49 @@ class Movie(object):
     def __init__(self,
                  num=None,
                  param_file=None,
-                 path='./'):
+                 path='./',
+                 name_style='p3d',
+                 verbose=False):
         """ Initlize a movie object
         """
-        self._name_sty  = '/movie.{0}.{1}'
+
+        self._verbose   = verbose
+
+        if name_style.lower() == 'p3d':
+            self._std_init(num, param_file, path)
+
+        elif name_style.lower() in ['tulasi', 'unfinished'] :
+            self._tulasi_init(param_file, path)
+
+#======================================================
+
+    def _std_init(self, num, param_file, path):
+        """ Initlize a movie object based on Marc's naming convetion
+        """
+        self._name_sty  = 'movie.{0}.{1}'
         self.path       = self._get_movie_path(path)
-        if param_file is not None: param_file = self.path + '/' + param_file
-        self.param      = load_param(param_file)
+        self.param      = load_param(param_file, path=self.path)
         self.num        = self._get_movie_num(num)
         self.movie_vars = self._get_movie_vars()
         self.log        = self._load_log()
         self.ntimes     = self._get_ntimes()
 
+#======================================================
 
-    def get_fields(self, mvars, time=None, slc=None):
+    def _tulasi_init(self, param_file, path):
+        """ Initlize a movie object using tulasi's naming convetion
+        """
+        self._name_sty  = '{0}'
+        self.path       = path
+        self.param      = load_param(param_file, path=self.path)
+        self.num        = '999'
+        self.movie_vars = self._get_movie_vars()
+        self.log        = self._load_log()
+        self.ntimes     = self._get_ntimes()
+
+#======================================================
+
+    def get_fields(self, mvars, time=None, slc=None, verbose=False):
         """ Loads the field(s) var at for a given time(s)
 
             :param var: A space seperated list of the varibles to load
@@ -40,10 +70,12 @@ class Movie(object):
                 that you dont want, and the second is the off set
         """
 
+        self._verbose = verbose
+
         if 'all' in mvars:
             mvars = tuple(self.movie_vars) 
         elif type(mvars) is str:
-            mvars.split()
+            mvars = mvars.split()
         
         def time_not_in_file(t):
             try:
@@ -77,6 +109,7 @@ class Movie(object):
 
         return flds
 
+#======================================================
 
     def _get_xyz_vectors(self, time, slc):
         xyz_vecs = {}
@@ -143,6 +176,8 @@ class Movie(object):
 #            fname = self.movie_path+'/movie.'+cosa+'.'+self.movie_num_str
 #            fname = os.path.abspath(fname)
 
+#======================================================
+
     def _read_movie(self, var, time, slc):
         
         # Insert Comment about werid movie shape
@@ -152,8 +187,8 @@ class Movie(object):
                        self.param['pex']*self.param['nx'])
         
 
-        fname = self.path + self._name_sty.format(var,self.num)
-        print "Loading {0}".format(fname)
+        fname = os.path.join(self.path,  self._name_sty.format(var,self.num))
+        vprint(self, "Loading {0}".format(fname))
 
         # It seems that Marc Swisdak hates us and wants to be unhappy because 
         # the byte data is unsigned and the doulbe byte is signed so that is 
@@ -209,20 +244,21 @@ class Movie(object):
         mov = np.squeeze(mov)
         return mov
 
+#======================================================
 
     def _load_log(self):
         """ Loads the log file for a given set of movies files
             It creates a dictionary
         """
 
-        fname = self.path + self._name_sty.format('log', self.num)
+        fname = os.path.join(self.path, self._name_sty.format('log', self.num))
 
         if 'four_byte' in self.param:
-            print 'Four Byte data, no log file to load.'
+            vprint(self, 'Four Byte data, no log file to load.')
             return None
 
         else:
-            print "Loading {0}".format(fname)
+            vprint(self, "Loading {0}".format(fname))
             clims = np.loadtxt(fname)
         
             if len(clims)%len(self.movie_vars) != 0:
@@ -243,6 +279,8 @@ class Movie(object):
 #   in the array each element coresponds to a diffrent time slice
 #   so      movie.movie_log_dict['bz'] = [
 
+#======================================================
+
     def _get_ntimes(self):
         ntimes = None
         if self.log is not None:
@@ -255,7 +293,8 @@ class Movie(object):
                      self.param['nz']*self.param['pez']
             for v in self.movie_vars:
                 try:
-                    fname = self.path + self._name_sty.format(v, self.num)
+                    fname = os.path.join(self.path, 
+                                         self._name_sty.format(v, self.num))
                     ntimes = os.path.getsize(fname)/4/ngrids
                     return ntimes
                 except OSError:
@@ -263,40 +302,46 @@ class Movie(object):
 
             raise ShouldNotGetHereError()
 
-
+#======================================================
 
     def _get_movie_path(self,path):
 
         attempt_tol = 5
         path = os.path.abspath(path)
-        choices = glob.glob(path + self._name_sty.format('log', '*'))
+        #choices = glob.glob(path + self._name_sty.format('log', '*'))
+        choices = glob.glob(os.path.join(path, 
+                  self._name_sty.format('log', '*')))
 
         c = 0
         while not choices and c < attempt_tol:
             print '='*20 + ' No movie files found ' + '='*20
             path = os.path.abspath(raw_input('Please Enter Path: '))
-            choices = glob.glob(path + self._name_sty.format('log', '*'))
-            c =+ 1
+            choices = glob.glob(os.path.join(path, 
+                      self._name_sty.format('log', '*')))
+            c += 1
 
         assert choices, 'No movie log files found!' 
 
         return path
 
+#======================================================
 
     def _get_movie_num(self,num):
 
-        choices = glob.glob(self.path + self._name_sty.format('log', '*'))
+        choices = glob.glob(os.path.join(self.path, 
+                                         self._name_sty.format('log', '*')))
         choices = [k[-3:] for k in choices]
 
         num = _num_to_ext(num)
 
         if num not in choices:
             _ =  'Select from the following possible movie numbers: '\
-                 '\n{0} '.format(choices)
+                 '\n{0} '.format([int(c) for c in choices])
             num = int(raw_input(_))
  
         return _num_to_ext(num)
 
+#======================================================
 
     def _get_movie_vars(self):
         #NOTE: The movie_vars are in an order, please do not switch around 
@@ -402,37 +447,3 @@ class Movie(object):
 #c#        dx = lx/nx
 #c#        dy = ly/ny
 #c#        return (np.arange(dx/2.,lx,dx),np.arange(dy/2.,ly,dy))
-
-
-class UnfinishedMovie(Movie):
-    """Class to load p3d movie data"""
-
-    def __init__(self, param=None, path='./'):
-        """ Initlize a movie object
-        """
-        self._name_sty  = '/{0}'
-        self.path       = path
-        self.param      = load_param(param)
-        self.num        = '999'
-        self.movie_vars = self._get_movie_vars()
-        self.log        = self._load_log()
-        self.ntimes     = self._get_ntimes()
-
-
-# Is this nothing? I think this is garbage right now and should be cleaned up
-def load_movie(mvars=None, time=None, movie_num=None):
-    param = glob.glob('./param*')
-
-    M = Movie(param=param, num=movie_num)
-
-    if time is None:
-        get_time_msg = 'There are {0} times in movie number {1}. \n' +\
-                       'Please enter the time: '
-
-        get_time_msg = get_time_msg.format(M.ntimes, M.num)
-
-        time, attempt_tol, crt = -1,5,0
-        while time not in range(M.ntimes) and ctr < attempt_tol:
-            time = raw_input(get_time_msg)
-            ctr =+ 1
-    #return 

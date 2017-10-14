@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-def load_param(param_file=None):
+def load_param(param_file=None, path=''):
     """ Method to load in the param file for a given run
         It will try and then ask for where the file is. if it doent know
     """
@@ -10,7 +10,9 @@ def load_param(param_file=None):
     param = {'file': param_file}
 
     if param['file'] is None:
-        param['file'] = _get_param_file()
+        param['file'] = _get_param_file(path)
+    else:
+        param['file'] = os.path.join(path, param['file'])
 
     fname = os.path.abspath(os.path.expandvars(param['file']))
 
@@ -41,16 +43,23 @@ def load_param(param_file=None):
     return param
 
 
-def _get_param_file():
-    fname = raw_input('Please Param File: ')
-    fname = os.path.abspath(os.path.expandvars(fname.strip()))
+def _get_param_file(path=''):
+    fname = raw_input('Please enter param file: ')
+    fname = os.path.join(path, fname.strip())
+    fname = os.path.abspath(os.path.expandvars(fname))
 
-    while not os.path.isfile(fname):
-        error_text = '\nFile %s not found!\n' \
-                     'Please Enter Param file: ' % fname
+    c = 0
+    guess_tol = 5
+    while not os.path.isfile(fname) and c < guess_tol:
+        error_text = '\nFile {} not found!\nPlease enter param file: '
+        error_text = error_text.format(fname)
 
-        fname = raw_input(error_text)
+        fname = os.path.join(path, raw_input(error_text))
         fname = os.path.abspath(os.path.expandvars(fname))
+
+        c += 1
+
+    assert os.path.isfile(fname)
 
     return fname
 
@@ -70,8 +79,8 @@ def _num_to_ext(num):
     else:
         return None
 
-###### This should be in a differnt class
 
+###### This should be in a differnt class
 def interp_field(fld, r0, sim_lens):
     r0 = np.array(r0)
     sim_lens = np.array(sim_lens)
@@ -108,3 +117,12 @@ def interp_field(fld, r0, sim_lens):
                (wl[0])   *   (wl[1])*   (wl[2])*fld[lp1[0], lp1[1], lp1[2]]
     else:
         raise Exception("Field shape not understood")
+
+
+def vprint(obj, *args):
+    """ Verbose Print
+    """
+    if getattr(obj, '_verbose', False):
+        for arg in args:
+            print arg,
+        print
