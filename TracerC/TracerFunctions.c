@@ -23,6 +23,281 @@
 
 //---------------------------------------------------------------------------//
 //---------------------------------------------------------------------------//
+// SLOPE CALCULATING METHOD FOR E
+
+// Works identically to CalcSlopes3 accept it does not normalize the B
+// components
+void CalcSlopes3E(double x, double y, double z, double * Bx, double * By, double * Bz, int Xsize, int Ysize, int Zsize, double * B){
+
+    double Wx, Wy, Wz;
+    int i, j, k, i1, j1, k1;
+    
+    if (x >= 0 && y >= 0 && z >= 0){
+        Wx = fmod(x, 1);
+        Wy = fmod(y, 1);
+        Wz = fmod(z, 1);
+        i = (int) x;
+        j = (int) y;
+        k = (int) z;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (i == (Xsize - 1)){
+            i1 = 0;
+        }
+        if (i > (Xsize - 1)){
+            i = i - Xsize;            
+            i1 = i1 - Xsize;
+        }
+        if (j == (Ysize - 1)){
+            j1 = 0;
+        }
+        if (j > (Ysize - 1)){
+            j = j - Ysize;            
+            j1 = j1 - Ysize;
+        }
+        if (k == (Zsize - 1)){
+            k1 = 0;
+        }
+        if (k > (Zsize - 1)){
+            k = k - Zsize;            
+            k1 = k1 - Zsize;
+        }
+    }
+    else if (y >= 0 && z >= 0){
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wy = fmod(y, 1);
+        j = (int) y;
+        Wz = fmod(z, 1);
+        k = (int) z;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (j == (Ysize - 1)){
+            j1 = 0;
+        }
+        if (j > (Ysize - 1)){
+            j = j - Ysize;            
+            j1 = j1 - Ysize;
+        }
+        if (k == (Zsize - 1)){
+            k1 = 0;
+        }
+        if (k > (Zsize - 1)){
+            k = k - Zsize;            
+            k1 = k1 - Zsize;
+        }
+        if (i == -1){
+            i = Xsize - 1;      
+        }
+        if (i < -1){
+            i = i + Xsize;
+            i1 = i1 + Xsize;        
+        }
+    }
+    else if (x >= 0 && z >= 0){
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        Wx = fmod(x, 1);
+        i = (int) x;
+        Wz = fmod(z, 1);
+        k = (int) z;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (i == (Xsize - 1)){
+            i1 = 0;
+        }
+        if (i > (Xsize - 1)){
+            i = i - Xsize;            
+            i1 = i1 - Xsize;
+        }
+        if (k == (Zsize - 1)){
+            k1 = 0;
+        }
+        if (k > (Zsize - 1)){
+            k = k - Zsize;            
+            k1 = k1 - Zsize;
+        }
+        if (j == -1){
+            j = Ysize - 1;      
+        }
+        if (j < -1){
+            j = j + Ysize;
+            j1 = j1 + Ysize;        
+        }
+    }
+    else if (y >= 0 && x >= 0){
+        Wz = 1 - ((int) z - z);
+        k = (int) z;
+        Wx = fmod(x, 1);
+        i = (int) x;
+        Wy = fmod(y, 1);
+        j = (int) y;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (i == (Xsize - 1)){
+            i1 = 0;
+        }
+        if (i > (Xsize - 1)){
+            i = i - Xsize;            
+            i1 = i1 - Xsize;
+        }
+        if (j == (Ysize - 1)){
+            j1 = 0;
+        }
+        if (j > (Ysize - 1)){
+            j = j - Ysize;            
+            j1 = j1 - Ysize;
+        }
+        if (k == -1){
+            k = Zsize - 1;      
+        }
+        if (k < -1){
+            k = k + Zsize;
+            k1 = k1 + Zsize;        
+        }
+    }
+    else if (z >= 0){
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        Wz = fmod(z, 1);
+        k = (int) z;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (k == (Zsize - 1)){
+            k1 = 0;
+        }
+        if (k > (Zsize - 1)){
+            k = k - Zsize;            
+            k1 = k1 - Zsize;
+        }
+        if (i == -1){
+            i = Xsize - 1;      
+        }
+        if (i < -1){
+            i = i + Xsize;
+            i1 = i1 + Xsize;        
+        }
+        if (j == -1){
+            j = Ysize - 1;      
+        }
+        if (j < -1){
+            j = j + Ysize;
+            j1 = j1 + Ysize;        
+        }
+    }
+    else if (y >= 0){
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wz = 1 - ((int) z - z);
+        k = (int) z;
+        Wy = fmod(y, 1);
+        j = (int) y;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (j == (Ysize - 1)){
+            j1 = 0;
+        }
+        if (j > (Ysize - 1)){
+            j = j - Ysize;            
+            j1 = j1 - Ysize;
+        }
+        if (i == -1){
+            i = Xsize - 1;      
+        }
+        if (i < -1){
+            i = i + Xsize;
+            i1 = i1 + Xsize;        
+        }
+        if (k == -1){
+            k = Zsize - 1;      
+        }
+        if (k < -1){
+            k = k + Zsize;
+            k1 = k1 + Zsize;        
+        }
+    }
+    else if (x >= 0){
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        Wz = 1 - ((int) z - z);
+        k = (int) z;
+        Wx = fmod(x, 1);
+        i = (int) x;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (i == (Xsize - 1)){
+            i1 = 0;
+        }
+        if (i > (Xsize - 1)){
+            i = i - Xsize;            
+            i1 = i1 - Xsize;
+        }
+        if (j == -1){
+            j = Ysize - 1;      
+        }
+        if (j < -1){
+            j = j + Ysize;
+            j1 = j1 + Ysize;        
+        }
+        if (k == -1){
+            k = Zsize - 1;      
+        }
+        if (k < -1){
+            k = k + Zsize;
+            k1 = k1 + Zsize;        
+        }
+    }
+    else{
+        Wx = 1 - ((int) x - x);        
+        i = (int) x;
+        Wy = 1 - ((int) y - y);
+        j = (int) y;
+        Wz = 1 - ((int) z - z);
+        k = (int) z;
+        i1 = i + 1;
+        j1 = j + 1;
+        k1 = k + 1;
+        if (i == -1){
+            i = Xsize - 1;      
+        }
+        if (i < -1){
+            i = i + Xsize;
+            i1 = i1 + Xsize;        
+        }
+        if (j == -1){
+            j = Ysize - 1;      
+        }
+        if (j < -1){
+            j = j + Ysize;
+            j1 = j1 + Ysize;        
+        }
+        if (k == -1){
+            k = Zsize - 1;      
+        }
+        if (k < -1){
+            k = k + Zsize;
+            k1 = k1 + Zsize;        
+        }
+    }
+
+    B[0] = (1-Wx)*(1-Wy)*(1-Wz)*Bx(i,j,k) + (1-Wx)*Wy*(1-Wz)*Bx(i,j1,k) + Wx*(1-Wy)*(1-Wz)*Bx(i1,j,k) + Wx*Wy*(1-Wz)*Bx(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*Bx(i,j,k1) + (1-Wx)*Wy*Wz*Bx(i,j1,k1) + Wx*(1-Wy)*Wz*Bx(i1,j,k1) + Wx*Wy*Wz*Bx(i1,j1,k1);
+    B[1] = (1-Wx)*(1-Wy)*(1-Wz)*By(i,j,k) + (1-Wx)*Wy*(1-Wz)*By(i,j1,k) + Wx*(1-Wy)*(1-Wz)*By(i1,j,k) + Wx*Wy*(1-Wz)*By(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*By(i,j,k1) + (1-Wx)*Wy*Wz*By(i,j1,k1) + Wx*(1-Wy)*Wz*By(i1,j,k1) + Wx*Wy*Wz*By(i1,j1,k1);
+    B[2] = (1-Wx)*(1-Wy)*(1-Wz)*Bz(i,j,k) + (1-Wx)*Wy*(1-Wz)*Bz(i,j1,k) + Wx*(1-Wy)*(1-Wz)*Bz(i1,j,k) + Wx*Wy*(1-Wz)*Bz(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*Bz(i,j,k1) + (1-Wx)*Wy*Wz*Bz(i,j1,k1) + Wx*(1-Wy)*Wz*Bz(i1,j,k1) + Wx*Wy*Wz*Bz(i1,j1,k1);
+
+}
+
+
+//---------------------------------------------------------------------------//
+//---------------------------------------------------------------------------//
 // STANDARD 3D TRACING METHODS
 
 // Method to determine Bx/|B|, By/|B| and Bz/|B| at given point [x, y, z] in
@@ -950,278 +1225,4 @@ int RK4_2D(double* Line_X, double * Line_Y, double Xinit, double Yinit, float * 
     return steps;
 }
 
-
-//---------------------------------------------------------------------------//
-//---------------------------------------------------------------------------//
-// SLOPE CALCULATING METHOD FOR E
-
-// Works identically to CalcSlopes3 accept it does not normalize the B
-// components
-void CalcSlopes3E(double x, double y, double z, double * Bx, double * By, double * Bz, int Xsize, int Ysize, int Zsize, double * B){
-
-    double Wx, Wy, Wz;
-    int i, j, k, i1, j1, k1;
-    
-    if (x >= 0 && y >= 0 && z >= 0){
-        Wx = fmod(x, 1);
-        Wy = fmod(y, 1);
-        Wz = fmod(z, 1);
-        i = (int) x;
-        j = (int) y;
-        k = (int) z;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (i == (Xsize - 1)){
-            i1 = 0;
-        }
-        if (i > (Xsize - 1)){
-            i = i - Xsize;            
-            i1 = i1 - Xsize;
-        }
-        if (j == (Ysize - 1)){
-            j1 = 0;
-        }
-        if (j > (Ysize - 1)){
-            j = j - Ysize;            
-            j1 = j1 - Ysize;
-        }
-        if (k == (Zsize - 1)){
-            k1 = 0;
-        }
-        if (k > (Zsize - 1)){
-            k = k - Zsize;            
-            k1 = k1 - Zsize;
-        }
-    }
-    else if (y >= 0 && z >= 0){
-        Wx = 1 - ((int) x - x);        
-        i = (int) x;
-        Wy = fmod(y, 1);
-        j = (int) y;
-        Wz = fmod(z, 1);
-        k = (int) z;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (j == (Ysize - 1)){
-            j1 = 0;
-        }
-        if (j > (Ysize - 1)){
-            j = j - Ysize;            
-            j1 = j1 - Ysize;
-        }
-        if (k == (Zsize - 1)){
-            k1 = 0;
-        }
-        if (k > (Zsize - 1)){
-            k = k - Zsize;            
-            k1 = k1 - Zsize;
-        }
-        if (i == -1){
-            i = Xsize - 1;      
-        }
-        if (i < -1){
-            i = i + Xsize;
-            i1 = i1 + Xsize;        
-        }
-    }
-    else if (x >= 0 && z >= 0){
-        Wy = 1 - ((int) y - y);
-        j = (int) y;
-        Wx = fmod(x, 1);
-        i = (int) x;
-        Wz = fmod(z, 1);
-        k = (int) z;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (i == (Xsize - 1)){
-            i1 = 0;
-        }
-        if (i > (Xsize - 1)){
-            i = i - Xsize;            
-            i1 = i1 - Xsize;
-        }
-        if (k == (Zsize - 1)){
-            k1 = 0;
-        }
-        if (k > (Zsize - 1)){
-            k = k - Zsize;            
-            k1 = k1 - Zsize;
-        }
-        if (j == -1){
-            j = Ysize - 1;      
-        }
-        if (j < -1){
-            j = j + Ysize;
-            j1 = j1 + Ysize;        
-        }
-    }
-    else if (y >= 0 && x >= 0){
-        Wz = 1 - ((int) z - z);
-        k = (int) z;
-        Wx = fmod(x, 1);
-        i = (int) x;
-        Wy = fmod(y, 1);
-        j = (int) y;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (i == (Xsize - 1)){
-            i1 = 0;
-        }
-        if (i > (Xsize - 1)){
-            i = i - Xsize;            
-            i1 = i1 - Xsize;
-        }
-        if (j == (Ysize - 1)){
-            j1 = 0;
-        }
-        if (j > (Ysize - 1)){
-            j = j - Ysize;            
-            j1 = j1 - Ysize;
-        }
-        if (k == -1){
-            k = Zsize - 1;      
-        }
-        if (k < -1){
-            k = k + Zsize;
-            k1 = k1 + Zsize;        
-        }
-    }
-    else if (z >= 0){
-        Wx = 1 - ((int) x - x);        
-        i = (int) x;
-        Wy = 1 - ((int) y - y);
-        j = (int) y;
-        Wz = fmod(z, 1);
-        k = (int) z;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (k == (Zsize - 1)){
-            k1 = 0;
-        }
-        if (k > (Zsize - 1)){
-            k = k - Zsize;            
-            k1 = k1 - Zsize;
-        }
-        if (i == -1){
-            i = Xsize - 1;      
-        }
-        if (i < -1){
-            i = i + Xsize;
-            i1 = i1 + Xsize;        
-        }
-        if (j == -1){
-            j = Ysize - 1;      
-        }
-        if (j < -1){
-            j = j + Ysize;
-            j1 = j1 + Ysize;        
-        }
-    }
-    else if (y >= 0){
-        Wx = 1 - ((int) x - x);        
-        i = (int) x;
-        Wz = 1 - ((int) z - z);
-        k = (int) z;
-        Wy = fmod(y, 1);
-        j = (int) y;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (j == (Ysize - 1)){
-            j1 = 0;
-        }
-        if (j > (Ysize - 1)){
-            j = j - Ysize;            
-            j1 = j1 - Ysize;
-        }
-        if (i == -1){
-            i = Xsize - 1;      
-        }
-        if (i < -1){
-            i = i + Xsize;
-            i1 = i1 + Xsize;        
-        }
-        if (k == -1){
-            k = Zsize - 1;      
-        }
-        if (k < -1){
-            k = k + Zsize;
-            k1 = k1 + Zsize;        
-        }
-    }
-    else if (x >= 0){
-        Wy = 1 - ((int) y - y);
-        j = (int) y;
-        Wz = 1 - ((int) z - z);
-        k = (int) z;
-        Wx = fmod(x, 1);
-        i = (int) x;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (i == (Xsize - 1)){
-            i1 = 0;
-        }
-        if (i > (Xsize - 1)){
-            i = i - Xsize;            
-            i1 = i1 - Xsize;
-        }
-        if (j == -1){
-            j = Ysize - 1;      
-        }
-        if (j < -1){
-            j = j + Ysize;
-            j1 = j1 + Ysize;        
-        }
-        if (k == -1){
-            k = Zsize - 1;      
-        }
-        if (k < -1){
-            k = k + Zsize;
-            k1 = k1 + Zsize;        
-        }
-    }
-    else{
-        Wx = 1 - ((int) x - x);        
-        i = (int) x;
-        Wy = 1 - ((int) y - y);
-        j = (int) y;
-        Wz = 1 - ((int) z - z);
-        k = (int) z;
-        i1 = i + 1;
-        j1 = j + 1;
-        k1 = k + 1;
-        if (i == -1){
-            i = Xsize - 1;      
-        }
-        if (i < -1){
-            i = i + Xsize;
-            i1 = i1 + Xsize;        
-        }
-        if (j == -1){
-            j = Ysize - 1;      
-        }
-        if (j < -1){
-            j = j + Ysize;
-            j1 = j1 + Ysize;        
-        }
-        if (k == -1){
-            k = Zsize - 1;      
-        }
-        if (k < -1){
-            k = k + Zsize;
-            k1 = k1 + Zsize;        
-        }
-    }
-
-    B[0] = (1-Wx)*(1-Wy)*(1-Wz)*Bx(i,j,k) + (1-Wx)*Wy*(1-Wz)*Bx(i,j1,k) + Wx*(1-Wy)*(1-Wz)*Bx(i1,j,k) + Wx*Wy*(1-Wz)*Bx(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*Bx(i,j,k1) + (1-Wx)*Wy*Wz*Bx(i,j1,k1) + Wx*(1-Wy)*Wz*Bx(i1,j,k1) + Wx*Wy*Wz*Bx(i1,j1,k1);
-    B[1] = (1-Wx)*(1-Wy)*(1-Wz)*By(i,j,k) + (1-Wx)*Wy*(1-Wz)*By(i,j1,k) + Wx*(1-Wy)*(1-Wz)*By(i1,j,k) + Wx*Wy*(1-Wz)*By(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*By(i,j,k1) + (1-Wx)*Wy*Wz*By(i,j1,k1) + Wx*(1-Wy)*Wz*By(i1,j,k1) + Wx*Wy*Wz*By(i1,j1,k1);
-    B[2] = (1-Wx)*(1-Wy)*(1-Wz)*Bz(i,j,k) + (1-Wx)*Wy*(1-Wz)*Bz(i,j1,k) + Wx*(1-Wy)*(1-Wz)*Bz(i1,j,k) + Wx*Wy*(1-Wz)*Bz(i1,j1,k) + (1-Wx)*(1-Wy)*Wz*Bz(i,j,k1) + (1-Wx)*Wy*Wz*Bz(i,j1,k1) + Wx*(1-Wy)*Wz*Bz(i1,j,k1) + Wx*Wy*Wz*Bz(i1,j1,k1);
-
-}
 

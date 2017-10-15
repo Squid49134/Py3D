@@ -10,9 +10,6 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import AutoMinorLocator
 import ctypes
 import os
-import sys
-sys.path.append('/home/ransom/Py3D')
-from py3d.sub import *
 from numpy.ctypeslib import ndpointer
 
 __all__ = ['TraceField', 'MapSeparator', 'SeparatorLoader', 'SeparatorSlice']
@@ -477,9 +474,9 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
             # rstride and cstride may be adjusted to change the resolution of
             # the 3D colormeshs, and the plotting speed, 10 means every 10th point,
             # 5 every 5th etc.
-            ax4.plot_surface(ZZ, XZ, YZ, facecolors = colorsZ, shade = False, rstride = 10, cstride = 10)
-            ax4.plot_surface(ZY, XY, YY, facecolors = colorsY, shade = False, rstride = 10, cstride = 10)
-            ax4.plot_surface(ZX, XX, YX, facecolors = colorsX, shade = False, rstride = 10, cstride = 10) 
+            ax4.plot_surface(ZZ, XZ, YZ, facecolors = colorsZ, shade = False, rstride = 5, cstride = 5)
+            ax4.plot_surface(ZY, XY, YY, facecolors = colorsY, shade = False, rstride = 5, cstride = 5)
+            ax4.plot_surface(ZX, XX, YX, facecolors = colorsX, shade = False, rstride = 5, cstride = 5) 
             ax4.set_zlim([0, Ysize-1])
             ax4.set_ylim([0, Xsize-1])
             ax4.set_xlim([0, Zsize-1])
@@ -1722,57 +1719,4 @@ def SeparatorLoader(SIMds, PathSepX, PathSepY, PathSepZ, Xsize, Ysize, Zsize, B 
 
     plt.show()
     
-#-----------------------------------------------------------------------------#
-#-----------------------------------------------------------------------------#
-# TESTS
-
-# 2D
-
-d = load_movie( 6, 'param_turb8192r1', '/scratch-fast/ransom/turb_data', ['bx', 'by'], 0)   
-Bx = d['by']
-By = d['bx']
-
-TraceField(.05, [Bx, By], [50, 50])
-
-# 3D
-
-print('Loading')
-BX =  np.load('/scratch-fast/asym030/bx.npy')
-BY =  np.load('/scratch-fast/asym030/by.npy')
-BZ =  np.load('/scratch-fast/asym030/bz.npy')
-
-EX =  np.load('/scratch-fast/asym030/ex.npy')
-EY =  np.load('/scratch-fast/asym030/ey.npy')
-EZ =  np.load('/scratch-fast/asym030/ez.npy')
-print('Loaded')
-
-#SepY0 = np.load('LowerSepY.npy')[0]
-#raw_input("Continue?")
-#TraceField(.025, [BX, BY, BZ], [0, SepY0, 0], .075, 1.5)
-#raw_input("Continue?")
-#TraceField(.025, [BX, BY, BZ], [12.5, 5, 12.5], .0125, 100, ['TraceX6.npy', 'TraceY6.npy', 'TraceZ6.npy'])
-#raw_input("Continue?")
-TraceField(.025, [BX, BY, BZ, EX, EY, EZ], [25.6, 12.8, 12.8], .0125, 100)
-raw_input("Continue?")
-TraceField(.025, [BX, BY, BZ], [25.6, 12.8, 12.8], .0025, 100)
-
-raw_input("Continue?")
-SeparatorSlice(.025, 'LowerSepX.npy', 'LowerSepY.npy', 'LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
-raw_input("Continue?")
-SeparatorSlice(.025, 'UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 51.2, 25.6, 25.6)
-
-
-
-
-# 318*.025 for Upper
-# 150*.025 for Lower
-raw_input("Continue?")
-MapSeparator(.025, ['SepX11.npy', 'SepY11.npy', 'SepZ11.npy'], [BX, BY, BZ], 8, 'Upper', 16)
-raw_input("Continue?")
-MapSeparator(.025, ['SepX9.npy', 'SepY9.npy', 'SepZ9.npy'], [BX, BY, BZ], 3.75, 'Lower', 8)
-
-raw_input("Continue?")
-SeparatorLoader(.025, 'LowerSepX.npy','LowerSepY.npy','LowerSepZ.npy', 51.2, 25.6, 25.6)
-raw_input("Continue?")
-SeparatorLoader(.025, 'LowerSepX.npy','LowerSepY.npy','LowerSepZ.npy', 51.2, 25.6, 25.6, [BX, BY, BZ])
 

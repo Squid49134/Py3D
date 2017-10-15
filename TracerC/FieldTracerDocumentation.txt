@@ -5,14 +5,19 @@ William Ransom, University of Delaware 2017
 
 Python Wrapper: TracerWrapper.py
 Shared C Library: TracerFunctions.c
+Tests: Tests.py
 
 compiling shared library:
     gcc -o TracerFunctions.so -shared -fPIC TracerFunctions.c
 
 User Methods:
 *all methods are fairly well error proof so the user cannot cause segmentation faults
+    by providing incorrect parameters, however, if the program encounters a point with 
+    exactly 0 magnetic field, this will cause the slope calculating methods to divide 
+    by 0 when normalizing the slopes and lead to a segmentation fault, this is unlikely 
+    in a real simulation, so a check was not included in the interest of speed
 *3D plots use colormeshs with low resolution to save time, if desired there
-    are options in the code called cstride and rstride which both = 10 and can
+    are options in the code called cstride and rstride which both = 5 and can
     be lowered to increase this resolution
 
     TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None)
@@ -31,9 +36,11 @@ User Methods:
             TraceField([Bx, By], [X, Y]):
                 Traces and plots a 2D line over a colormesh of |B|, ds and passes
                 are not adjustable
+		WARNING: For 2D, Bx and By must be arrays of type float32
             TraceField([Bx, By, Bz], [X, Y, Z], .1, 100):
                 Traces and Plots 3D line projections, offers the user an option to plot
                 puncture plots and a 3D plots over colormeshs of |B|, this takes extra time
+		WARNING: For 3D, Bx, By and Bz must be arrays of type float64
             TraceField([Bx, By, Bz], [X, Y, Z], .1, 100, ['TraceX.npy', 'TraceY.npy', 'TraceZ.npy']):
                 Will save the 3D trace data
             TraceField([Bx, By, Bz, Ex, Ey, Ez], [X, Y, Z], .1, 100):
