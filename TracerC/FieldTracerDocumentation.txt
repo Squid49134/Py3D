@@ -23,7 +23,8 @@ User Methods:
     TraceField(SIMds, B, Start, ds = None, passes = None, Saves = None)
         * recursive allowing user to quickly trace multiple points
         - SIMds is the real space ds of the simulation being traced used to plot in real space indexing
-        - B is a length 2 or 3 vector of the magnetic field data
+        - B is a length 2 or 3 vector of the magnetic field data which must be double data for 3D
+	    or float data for 2D
         - Start is a length 2 or 3 vector of the starting location in real space
         - ds is the differential step of the trace in real space, must be between 0 and 1
             large ds may cause unstable traces, must be empty for 2D, must be included for 3D

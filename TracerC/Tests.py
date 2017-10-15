@@ -20,22 +20,36 @@ from TracerWrapper import *
 # 2D Test Field
 
 print('Creating 2D Field...')
+# dx of the test simulation
 dx = .05
+# creating array corresponding to number of grid spaces in test simulation
+# from dx/2 to (length of simulation)-dx/2 each dx in length
 x = np.arange(2048)*dx + dx/2.
+# length of the test simulation
 lx = x[-1] + x[0]
 
+# creating 2D grid of x and y values
 yy,xx = np.meshgrid(x,x)
+# creating 2D array containing values equal to the length of the space from
+# the center of the grid (forms concentric circles)
 rr = np.sqrt((xx - lx/2.)**2 + (yy - lx/2.)**2)
 
+# setting magnitude of magnetic field
 psi = np.exp(-rr**1/4.)
 
+# creating circular magnetic field components - picture shifting 2 circles
+# veritcally to create X component such that it is greatest at the top and 
+# bottom of circle and zero on either side, and shifting 2 circles horizontally
+# to create Y component such that it is greatest at left and right of circle 
+# and zero at top and bottom
 Bx = (np.roll(psi,-1,axis=1) - np.roll(psi,1,axis=1))/(2.*dx)
 By = -(np.roll(psi,-1,axis=0) - np.roll(psi,1,axis=0))/(2.*dx)
-#Bm = np.sqrt(Bx**2 + By**2)
 
+# 2D fields must be float32 type
 Bx = np.float32(Bx)
 By = np.float32(By)
 
+# checking DivB = dBx/dx + dBy/dy = 0
 DivX = (np.roll(Bx, -1, axis=0) - np.roll(Bx, 1, axis=0))/(2.*dx)
 DivY = (np.roll(By, -1, axis=1) - np.roll(By, 1, axis=1))/(2.*dx)
 
@@ -45,6 +59,7 @@ DivB_Tot = np.sum(DivB)
 
 print('DivB = ' + str(DivB_Tot))
 
+# 2D trace call
 TraceField(.05, [Bx, By], [32, 32])
 
 #-----------------------------------------------------------------------------#
@@ -64,6 +79,7 @@ psi = np.exp(-rr**1/4.)
 Bx = (np.roll(psi,-1,axis=1) - np.roll(psi,1,axis=1))/(2.*dx)
 By = -(np.roll(psi,-1,axis=0) - np.roll(psi,1,axis=0))/(2.*dx)
 Bm2 = np.sqrt(Bx**2 + By**2)
+# constant magnetic field in the Z direction (spiral magneic field)
 Bz = Bm2
 
 DivX = (np.roll(Bx, -1, axis=0) - np.roll(Bx, 1, axis=0))/(2.*dx)
@@ -76,7 +92,8 @@ DivB_Tot = np.sum(DivB)
 
 print('DivB = ' + str(DivB_Tot))
 
-TraceField(.05, [Bx, By, Bz], [8, 8, 0], .001, 10)
+# 3D trace call
+TraceField(.05, [Bx, By, Bz], [8, 8, 0], .001, 12)
 
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
@@ -122,9 +139,7 @@ TraceField(.05, [Bx, By, Bz], [8, 8, 0], .001, 10)
 #raw_input("Continue?")
 #SeparatorSlice(.025, 'UpperSepX.npy', 'UpperSepY.npy', 'UpperSepZ.npy', 51.2, 25.6, 25.6)
 #
-#
-#
-#
+
 ## 318*.025 for Upper
 ## 150*.025 for Lower
 #raw_input("Continue?")
