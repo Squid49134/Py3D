@@ -10,7 +10,14 @@ from py3d.sub import *
 def EPlot():
     run = raw_input('Which run? \n')
     
-    restarts = raw_input('How many times has sim been restarted? \n')
+    for i in range(1, 10):
+            try:
+                test = open('/global/cscratch1/sd/ransom/'+ str(run) + '/staging/p3d.stdout.00' + str(i), 'r')
+                restartNum = i
+            except:
+                pass
+            
+    print('Sim has been resarted ' + str(restartNum) + ' times,')
     
     num = raw_input('Which restart would you like to plot from? \n')
     
