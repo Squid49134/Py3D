@@ -35,13 +35,14 @@ def get_energy(stdoutPath = None):
 def ECons(Run = None):
     if Run == None:
         Run = str(raw_input('Which Run? \n'))
+    num = 0
     for i in range(1, 10):
             try:
                 test = open('/global/cscratch1/sd/ransom/'+ str(Run) + '/staging/p3d.stdout.00' + str(i), 'r')
                 num = i
             except:
                 pass
-    if int(num) == 0: 
+    if num == 0: 
         pathStdout = '/global/cscratch1/sd/ransom/'+ str(Run) + '/staging/p3d.stdout.00' + num
         pathToMovieData = '/global/cscratch1/sd/ransom/'+ str(Run) + '/staging'
         #pathExp = '/global/cscratch1/sd/ransom/' + str(Run) + '/exp3d_' + str(Run)

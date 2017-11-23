@@ -10,6 +10,7 @@ from py3d.sub import *
 def EPlot():
     run = raw_input('Which run? \n')
     
+    restartNum = 0
     for i in range(1, 10):
             try:
                 test = open('/global/cscratch1/sd/ransom/'+ str(run) + '/staging/p3d.stdout.00' + str(i), 'r')
@@ -21,7 +22,7 @@ def EPlot():
     
     num = raw_input('Which restart would you like to plot from? \n')
     
-    if restarts == 0 or num == restarts:
+    if restartNum == 0 or num == restartNum:
         movies = '/global/cscratch1/sd/ransom/' + str(run) + '/staging'
         paramFile = 'param_'+ str(run)   
         
