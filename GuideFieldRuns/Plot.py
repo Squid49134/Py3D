@@ -20,7 +20,7 @@ def EPlot():
             
     print('Sim has been resarted ' + str(restartNum) + ' times,')
     
-    num = raw_input('Which restart would you like to plot from? \n')
+    num = int(raw_input('Which restart would you like to plot from? \n'))
     
     if restartNum == 0 or num == restartNum:
         movies = '/global/cscratch1/sd/ransom/' + str(run) + '/staging'
