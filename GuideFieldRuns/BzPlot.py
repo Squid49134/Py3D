@@ -181,6 +181,7 @@ def findBackground(Slice):
     # starts at max and min values and shrinks the gap between the upper and
     # lower bounds until 50% of the data is between the upper and lower bound.
     # the average of the upper and lower bound then represents the background value of B
+    Slice = Slice[int(len(Slice)/4.):int((3./4.)*len(Slice))]
     minimum = Slice.min()
     maximum = Slice.max()
     DataInRange = 1
@@ -210,6 +211,8 @@ def findWidths(Slice, back, ds, UpOrLow):
     # starts at max and min values, walking left and right from each until hitting
     # the backgournd level of B, marking the edge of the enhanced and suppressed 
     # regions of B.
+    origLen = len(Slice)
+    Slice = Slice[int(len(Slice)/4.):int((3./4.)*len(Slice))]
     maxSlice = Slice.max()
     minSlice = Slice.min()
     minYVal = 0
@@ -281,9 +284,9 @@ def findWidths(Slice, back, ds, UpOrLow):
     EnhancWidth = (maxUpBound - maxLowBound)*ds
     SuppressWidth = (minUpBound - minLowBound)*ds
     
-    widths = np.array([minUpBound, maxUpBound, minLowBound, maxLowBound])  
+    widths = np.array([minUpBound + origLen/4, maxUpBound + origLen/4, minLowBound + origLen/4, maxLowBound + origLen/4])  
     if UpOrLow == 'Upper':
-        widths = widths + len(Slice)
+        widths = widths + origLen
     Sorted = False
     while Sorted == False:
         Sorted = True
@@ -617,7 +620,10 @@ if UpLow == 'Upper':
 if UpLow == 'Lower':
     UL = 1
 
-saveArray = np.array([int(runNum), Te, Ti, B, C, dx, dt, sub, PPG, ECon[1], round(ECon[0], 4), SliceXVal, UL, round(BackGround, 4), round(BzSlice.min(), 4), round(BzSlice.max(), 4), BzWidths[0], BzWidths[1]])
+halfSlice = BzSlice[int(len(BzSlice)/4.):int((3./4.)*len(BzSlice))]
+minBz = halfSlice.min()
+maxBz = halfSlice.max()
+saveArray = np.array([int(runNum), Te, Ti, B, C, dx, dt, sub, PPG, ECon[1], round(ECon[0], 4), SliceXVal, UL, round(BackGround, 4), round(minBz, 4), round(maxBz, 4), BzWidths[0], BzWidths[1]])
 print('Saving data...')
 np.save(run, saveArray)
 print('Saved.')
@@ -631,6 +637,7 @@ Page1.patch.set_facecolor('lightgrey')
 
 sp1 = plt.subplot2grid((15, 11), (0, 0), colspan = 5, rowspan = 2)
 sp1.plot(XVals, BzSlice, color = 'g')
+subTitle = sp1.set_title('$min$' + ' ' + '$=$' + ' ' + str(round(minBz, 2)) + ', ' + '$max$' + ' ' + '$=$' + ' ' + str(round(maxBz, 2)) + ', ' + '$background$' + ' ' + '$=$' + ' ' + str(round(BackGround, 2)) + '\n' + '$+ \Delta$' + ' ' + '$width$' + ' ' + '$=$' + ' ' + str(round(BzWidths[0], 2)) + ', ' + '$- \Delta$' + ' ' + '$width$' + ' ' + '$=$' + ' ' + str(round(BzWidths[1], 2)), fontsize = 8)
 sp1.xaxis.set_minor_locator(AutoMinorLocator(5))
 sp1.yaxis.set_minor_locator(AutoMinorLocator(5))
 sp1.locator_params(nbins = 8, axis = 'x')
@@ -640,12 +647,12 @@ sp1.set_xlabel('Y', fontsize = 10)
 sp1.set_ylabel('Bz', rotation = 0, fontsize = 10)
 sp1.xaxis.set_label_coords(1.03, .05)
 sp1.yaxis.set_label_coords(0, 1.05)
-sp1.legend(['$B_z$'], ncol = 1, loc = 'upper center', bbox_to_anchor = (0.5, -0.25), fontsize = 8)
 
 ymin1, ymax1 = sp1.get_ylim()
 sp1.plot([BzWidths[2][0], BzWidths[2][0]],[ymin1, ymax1], '--', color = 'k', linewidth = 1)
 sp1.plot([BzWidths[2][1], BzWidths[2][1]],[ymin1, ymax1], '--', color = 'k', linewidth = 1)
 sp1.plot([BzWidths[2][2], BzWidths[2][2]],[ymin1, ymax1], '--', color = 'k', linewidth = 1)
+sp1.legend(['$B_z$', '$\Delta$' + ' ' + '$Widths$'], ncol = 1, loc = 'upper center', bbox_to_anchor = (0.5, -0.25), fontsize = 8)
 
 sp2 = plt.subplot2grid((15, 11), (0, 6), colspan = 5, rowspan = 3)
 sp2.pcolormesh(Bz.T, vmin = MIN, vmax = MAX, cmap=plt.cm.bwr)
