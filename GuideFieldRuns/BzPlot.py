@@ -181,11 +181,11 @@ def findBackground(Slice):
     # starts at max and min values and shrinks the gap between the upper and
     # lower bounds until 50% of the data is between the upper and lower bound.
     # the average of the upper and lower bound then represents the background value of B
-    Slice = Slice[int(len(Slice)/4.):int((3./4.)*len(Slice))]
+    Slice = Slice[int(len(Slice)/5.):int((4./5.)*len(Slice))]
     minimum = Slice.min()
     maximum = Slice.max()
     DataInRange = 1
-    while DataInRange > .5:
+    while DataInRange > .6:
         minimum = minimum + .001
         pointsInRange = 0;
         for i in range(0, len(Slice)):
@@ -194,7 +194,7 @@ def findBackground(Slice):
         DataInRange = float(pointsInRange)/float(len(Slice))
     minimum = minimum - .1
     DataInRange = 1
-    while DataInRange > .5:
+    while DataInRange > .4:
         maximum = maximum - .001
         pointsInRange = 0;
         for i in range(0, len(Slice)):
@@ -212,7 +212,7 @@ def findWidths(Slice, back, ds, UpOrLow):
     # the backgournd level of B, marking the edge of the enhanced and suppressed 
     # regions of B.
     origLen = len(Slice)
-    Slice = Slice[int(len(Slice)/4.):int((3./4.)*len(Slice))]
+    Slice = Slice[int(len(Slice)/5.):int((4./5.)*len(Slice))]
     maxSlice = Slice.max()
     minSlice = Slice.min()
     minYVal = 0
@@ -227,7 +227,7 @@ def findWidths(Slice, back, ds, UpOrLow):
         i = maxYVal
         while True:
             i = i + 1
-            if Slice[i] <= back + .01:
+            if Slice[i] <= back + .005:
                 maxUpBound = i
                 break
             
@@ -248,7 +248,7 @@ def findWidths(Slice, back, ds, UpOrLow):
         i = minYVal
         while True:
             i = i - 1
-            if Slice[i] >= back - .01:
+            if Slice[i] >= back - .005:
                 minLowBound = i
                 break
             
@@ -263,14 +263,14 @@ def findWidths(Slice, back, ds, UpOrLow):
         i = maxYVal
         while True:
             i = i - 1
-            if Slice[i] <= back + .01:
+            if Slice[i] <= back + .005:
                 maxLowBound = i
                 break
             
         i = minYVal
         while True:
             i = i + 1
-            if Slice[i] >= back - .01:
+            if Slice[i] >= back - .005:
                 minUpBound = i
                 break
             
@@ -284,7 +284,7 @@ def findWidths(Slice, back, ds, UpOrLow):
     EnhancWidth = (maxUpBound - maxLowBound)*ds
     SuppressWidth = (minUpBound - minLowBound)*ds
     
-    widths = np.array([minUpBound + origLen/4, maxUpBound + origLen/4, minLowBound + origLen/4, maxLowBound + origLen/4])  
+    widths = np.array([minUpBound + int(origLen/5), maxUpBound + int(origLen/5), minLowBound + int(origLen/5), maxLowBound + int(origLen/5)])  
     if UpOrLow == 'Upper':
         widths = widths + origLen
     Sorted = False
@@ -446,7 +446,7 @@ YSize = Bz.shape[1]
 
 psi = calcPsi(Bx, By)
 xpts = findXpt(psi)
-showTestFig(Bz, xpts)
+#showTestFig(Bz, xpts)
 
 while True:
     UpLow = raw_input('Upper or Lower X point? U or L: \n')
@@ -620,7 +620,7 @@ if UpLow == 'Upper':
 if UpLow == 'Lower':
     UL = 1
 
-halfSlice = BzSlice[int(len(BzSlice)/4.):int((3./4.)*len(BzSlice))]
+halfSlice = BzSlice[int(len(BzSlice)/5.):int((4./5.)*len(BzSlice))]
 minBz = halfSlice.min()
 maxBz = halfSlice.max()
 saveArray = np.array([int(runNum), Te, Ti, B, C, dx, dt, sub, PPG, ECon[1], round(ECon[0], 4), SliceXVal, UL, round(BackGround, 4), round(minBz, 4), round(maxBz, 4), BzWidths[0], BzWidths[1]])
