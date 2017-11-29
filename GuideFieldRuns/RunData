@@ -1,0 +1,196 @@
+Guide Field Run Data 
+-------------------- 
+-------------------- 
+
+Run 1:
+------- 
+Te = 0.25, Ti = 0.25, B = 1.0
+  Initial Parameters: 
+     C = 10, dx = 0.025, dt = 0.005, sub = 1, PPG = 100
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 1.2917
+     Data Cyclo Time = 105
+     Slice X = 1782 Upper 
+  Bz: 
+     Background = 0.9539
+     Min = 0.7384
+     Max = 1.2344
+     Enhance Width = 2.825
+     Suppress Width = 1.375
+
+Run 2:
+------- 
+Te = 0.25, Ti = 0.25, B = 2.0
+  Initial Parameters: 
+     C = 10, dx = 0.025, dt = 0.005, sub = 1, PPG = 100
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 0.5669
+     Data Cyclo Time = 110
+     Slice X = 1628 Upper 
+  Bz: 
+     Background = 1.9496
+     Min = 1.8381
+     Max = 2.215
+     Enhance Width = 3.05
+     Suppress Width = 0.9
+
+Run 3:
+------- 
+Te = 0.25, Ti = 0.25, B = 4.0
+  Initial Parameters: 
+     C = 10, dx = 0.0125, dt = 0.0025, sub = 1, PPG = 100
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 0.0934
+     Data Cyclo Time = 110
+     Slice X = 3274 Upper 
+  Bz: 
+     Background = 3.9776
+     Min = 3.9573
+     Max = 4.1258
+     Enhance Width = 2.7375
+     Suppress Width = 0.4125
+
+Run 4:
+------- 
+Te = 0.25, Ti = 1.0, B = 1.0
+  Initial Parameters: 
+     C = 10, dx = 0.025, dt = 0.005, sub = 1, PPG = 100
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 0.903
+     Data Cyclo Time = 100
+     Slice X = 3614 Lower 
+  Bz: 
+     Background = 0.959
+     Min = 0.7609
+     Max = 1.3131
+     Enhance Width = 3.825
+     Suppress Width = 1.325
+
+Run 5:
+------- 
+Te = 0.25, Ti = 1.0, B = 4.0
+  Initial Parameters: 
+     C = 10, dx = 0.0125, dt = 0.0025, sub = 1, PPG = 100
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 0.11
+     Data Cyclo Time = 110
+     Slice X = 7375 Lower 
+  Bz: 
+     Background = 3.9709
+     Min = 3.9133
+     Max = 4.1694
+     Enhance Width = 2.5125
+     Suppress Width = 0.675
+
+Run 6:
+------- 
+Te = 0.25, Ti = 4.0, B = 1.0
+  Initial Parameters: 
+     C = 10, dx = 0.025, dt = 0.005, sub = 1, PPG = 100
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 0.4955
+     Data Cyclo Time = 125
+     Slice X = 2437 Lower 
+  Bz: 
+     Background = 0.9776
+     Min = 0.7621
+     Max = 1.3691
+     Enhance Width = 6.225
+     Suppress Width = 1.7
+
+Run 7:
+------- 
+Te = 0.25, Ti = 4.0, B = 2.0
+  Initial Parameters: 
+     C = 10, dx = 0.025, dt = 0.005, sub = 1, PPG = 100
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 0.3537
+     Data Cyclo Time = 100
+     Slice X = 2441 Lower 
+  Bz: 
+     Background = 1.9693
+     Min = 1.8226
+     Max = 2.296
+     Enhance Width = 3.3
+     Suppress Width = 1.325
+
+Run 8:
+------- 
+Te = 0.25, Ti = 4.0, B = 4.0
+  Initial Parameters: 
+     C = 10, dx = 0.0125, dt = 0.0025, sub = 1, PPG = 100
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 0.1256
+     Data Cyclo Time = 110
+     Slice X = 4883 Lower 
+  Bz: 
+     Background = 3.9794
+     Min = 3.8105
+     Max = 4.2283
+     Enhance Width = 2.4875
+     Suppress Width = 1.6375
+
+Run 9:
+------- 
+Te = 1.0, Ti = 0.25, B = 1.0
+  Initial Parameters: 
+     C = 20, dx = 0.025, dt = 0.0025, sub = 1, PPG = 300
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 1.9878
+     Data Cyclo Time = 100
+     Slice X = 3781 Lower 
+  Bz: 
+     Background = 0.9822
+     Min = 0.8554
+     Max = 1.255
+     Enhance Width = 3.175
+     Suppress Width = 1.525
+
+Run 10:
+------- 
+Te = 1.0, Ti = 0.25, B = 4.0
+  Initial Parameters: 
+     C = 20, dx = 0.025, dt = 0.0025, sub = 1, PPG = 100
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 1.3295
+     Data Cyclo Time = 105
+     Slice X = 3551 Lower 
+  Bz: 
+     Background = 3.9697
+     Min = 3.9149
+     Max = 4.1415
+     Enhance Width = 3.475
+     Suppress Width = 0.975
+
+Run 11:
+------- 
+Te = 1.0, Ti = 4.0, B = 1.0
+  Initial Parameters: 
+     C = 20, dx = 0.025, dt = 0.0025, sub = 1, PPG = 150
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 1.7384
+     Data Cyclo Time = 135
+     Slice X = 3665 Lower 
+  Bz: 
+     Background = 0.9762
+     Min = 0.7894
+     Max = 1.3101
+     Enhance Width = 7.4
+     Suppress Width = 1.7
+
+Run 12:
+------- 
+Te = 1.0, Ti = 4.0, B = 4.0
+  Initial Parameters: 
+     C = 20, dx = 0.025, dt = 0.0025, sub = 1, PPG = 100
+  Energy Conservation / General Data: 
+     100 Cyclo dE % = 1.1187
+     Data Cyclo Time = 100
+     Slice X = 2230 Lower 
+  Bz: 
+     Background = 3.9712
+     Min = 3.8475
+     Max = 4.1799
+     Enhance Width = 4.65
+     Suppress Width = 1.725
+
