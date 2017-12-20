@@ -432,7 +432,7 @@ def FieldLine_3D(SIMds, Xinit, Yinit, Zinit, B, Xsize, Ysize, Zsize, ds, Steps, 
             ZX = ZX.T
             YX = YX.T
             # This meshgrid will be on the plane X = 0
-            XX = np.zeros((Zsize, Ysize))
+            XX = np.zeros((Ysize, Zsize))
             cmp = plt.cm.bwr
             norm = mpt.colors.Normalize(vmin = MIN, vmax = MAX)
             colorsX = cmp(norm(Bm0))    
